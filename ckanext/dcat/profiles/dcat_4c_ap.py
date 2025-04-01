@@ -1,8 +1,8 @@
 # Auto generated from dcat_4c_ap.yaml by pythongen.py version: 0.0.1
-# Generation date: 2025-03-24T12:33:35
+# Generation date: 2025-04-01T12:14:06
 # Schema: dcat-4C-ap
 #
-# id: https://stroemphi.github.io/dcat-4C-ap/dcat_4c_ap.yaml
+# id: https://stroemphi.github.io/dcat-4C-ap/dcat_4c_ap
 # description: This is an extension of the DCAT Application Profile in LinkML. It is intended to be used by NFDI4Chem & NFDI4Cat as a core that can further be extended in profiles to provide domain specific metadata for a dataset.
 # license: CC-BY 4.0
 
@@ -57,8 +57,8 @@ from rdflib import (
     URIRef
 )
 
-from linkml_runtime.linkml_model.types import Decimal, Float, String, Uri, Uriorcurie
-from linkml_runtime.utils.metamodelcore import Decimal, URI, URIorCURIE
+from linkml_runtime.linkml_model.types import Datetime, Decimal, Float, String, Uri, Uriorcurie
+from linkml_runtime.utils.metamodelcore import Decimal, URI, URIorCURIE, XSDDateTime
 
 metamodel_version = "1.7.0"
 version = None
@@ -95,7 +95,6 @@ LINKMLDCATAP = CurieNamespace('linkmldcatap', 'https://stroemphi.github.io/dcat-
 LOCN = CurieNamespace('locn', 'http://www.w3.org/ns/locn#')
 NFDI = CurieNamespace('nfdi', 'https://stroemphi.github.io/dcat-4C-ap/dcat_4nfdi_ap/')
 NFDI4C = CurieNamespace('nfdi4c', 'https://stroemphi.github.io/dcat-4C-ap/dcat_4c_ap/')
-NMR_SPECTROSCOPY = CurieNamespace('nmr_spectroscopy', 'https://stroemphi.github.io/dcat-4C-ap/nmr_spectroscopy.yaml')
 ODRL = CurieNamespace('odrl', 'http://www.w3.org/ns/odrl/2/')
 OWL = CurieNamespace('owl', 'http://www.w3.org/2002/07/owl#')
 PROV = CurieNamespace('prov', 'http://www.w3.org/ns/prov#')
@@ -113,6 +112,14 @@ DEFAULT_ = NFDI4C
 
 
 # Types
+class RFC4646(str):
+    """ The set of tags constructed according to RFC 4646 for the identification of languages. """
+    type_class_uri = DCTERMS["RFC4646"]
+    type_class_curie = "dcterms:RFC4646"
+    type_name = "RFC4646"
+    type_model_uri = NFDI4C.RFC4646
+
+
 class Duration(str):
     """ The datatype that represents durations of time. """
     type_class_uri = XSD["duration"]
@@ -146,11 +153,11 @@ class EvaluatedEntityId(URIorCURIE):
     pass
 
 
-class MaterialSampleId(EvaluatedEntityId):
+class ChemicalSubstanceId(EvaluatedEntityId):
     pass
 
 
-class ChemicalSampleId(MaterialSampleId):
+class ChemicalSampleId(ChemicalSubstanceId):
     pass
 
 
@@ -187,29 +194,6 @@ class NMRAnalysisDatasetId(AnalysisDatasetId):
 
 
 @dataclass(repr=False)
-class ChemicalSubstance(YAMLRoot):
-    """
-    A portion of matter of constant composition, composed of molecular entities of the same type or of different types
-    that is being evaluated in a scientific process.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = CHEBI["59999"]
-    class_class_curie: ClassVar[str] = "CHEBI:59999"
-    class_name: ClassVar[str] = "ChemicalSubstance"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.ChemicalSubstance
-
-    composed_of: Optional[Union[Union[dict, "ChemicalEntity"], List[Union[dict, "ChemicalEntity"]]]] = empty_list()
-
-    def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
-        if not isinstance(self.composed_of, list):
-            self.composed_of = [self.composed_of] if self.composed_of is not None else []
-        self.composed_of = [v if isinstance(v, ChemicalEntity) else ChemicalEntity(**as_dict(v)) for v in self.composed_of]
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
 class ChemicalEntity(YAMLRoot):
     """
     Any constitutionally or isotopically distinct atom, molecule, ion, ion pair, radical, radical ion, complex,
@@ -239,25 +223,6 @@ class ChemicalEntity(YAMLRoot):
 
         if self.iupac_formula is not None and not isinstance(self.iupac_formula, IUPACChemicalFormula):
             self.iupac_formula = IUPACChemicalFormula(**as_dict(self.iupac_formula))
-
-        super().__post_init__(**kwargs)
-
-
-@dataclass(repr=False)
-class Solvent(YAMLRoot):
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["010417"]
-    class_class_curie: ClassVar[str] = "SIO:010417"
-    class_name: ClassVar[str] = "Solvent"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Solvent
-
-    composed_of: Optional[Union[Union[dict, ChemicalEntity], List[Union[dict, ChemicalEntity]]]] = empty_list()
-
-    def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
-        if not isinstance(self.composed_of, list):
-            self.composed_of = [self.composed_of] if self.composed_of is not None else []
-        self.composed_of = [v if isinstance(v, ChemicalEntity) else ChemicalEntity(**as_dict(v)) for v in self.composed_of]
 
         super().__post_init__(**kwargs)
 
@@ -384,80 +349,54 @@ class EvaluatedEntity(YAMLRoot):
 
 
 @dataclass(repr=False)
-class MaterialSample(EvaluatedEntity):
+class ChemicalSubstance(EvaluatedEntity):
     """
-    A material entity that has the role of being a sample within a research activity.
+    A portion of matter of constant composition, composed of molecular entities of the same type or of different types
+    that is being evaluated in a scientific process.
     """
     _inherited_slots: ClassVar[List[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = OBI["0000747"]
-    class_class_curie: ClassVar[str] = "OBI:0000747"
-    class_name: ClassVar[str] = "MaterialSample"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.MaterialSample
+    class_class_uri: ClassVar[URIRef] = PROV["Entity"]
+    class_class_curie: ClassVar[str] = "prov:Entity"
+    class_name: ClassVar[str] = "ChemicalSubstance"
+    class_model_uri: ClassVar[URIRef] = NFDI4C.ChemicalSubstance
 
-    id: Union[str, MaterialSampleId] = None
-    has_mass: Optional[Union[dict, "Mass"]] = None
-    has_volume: Optional[Union[dict, "Volume"]] = None
-    has_length: Optional[Union[dict, "Length"]] = None
-    has_width: Optional[Union[dict, "Width"]] = None
-    has_height: Optional[Union[dict, "Height"]] = None
-    has_surface_area: Optional[Union[dict, "SurfaceArea"]] = None
-    was_derived_from: Optional[Union[str, MaterialSampleId]] = None
+    id: Union[str, ChemicalSubstanceId] = None
+    has_role: Optional[str] = None
+    composed_of: Optional[Union[Union[dict, ChemicalEntity], List[Union[dict, ChemicalEntity]]]] = empty_list()
 
     def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
         if self._is_empty(self.id):
             self.MissingRequiredField("id")
-        if not isinstance(self.id, MaterialSampleId):
-            self.id = MaterialSampleId(self.id)
+        if not isinstance(self.id, ChemicalSubstanceId):
+            self.id = ChemicalSubstanceId(self.id)
 
-        if self.has_mass is not None and not isinstance(self.has_mass, Mass):
-            self.has_mass = Mass(**as_dict(self.has_mass))
+        if self.has_role is not None and not isinstance(self.has_role, str):
+            self.has_role = str(self.has_role)
 
-        if self.has_volume is not None and not isinstance(self.has_volume, Volume):
-            self.has_volume = Volume(**as_dict(self.has_volume))
-
-        if self.has_length is not None and not isinstance(self.has_length, Length):
-            self.has_length = Length(**as_dict(self.has_length))
-
-        if self.has_width is not None and not isinstance(self.has_width, Width):
-            self.has_width = Width(**as_dict(self.has_width))
-
-        if self.has_height is not None and not isinstance(self.has_height, Height):
-            self.has_height = Height(**as_dict(self.has_height))
-
-        if self.has_surface_area is not None and not isinstance(self.has_surface_area, SurfaceArea):
-            self.has_surface_area = SurfaceArea(**as_dict(self.has_surface_area))
-
-        if self.was_derived_from is not None and not isinstance(self.was_derived_from, MaterialSampleId):
-            self.was_derived_from = MaterialSampleId(self.was_derived_from)
+        if not isinstance(self.composed_of, list):
+            self.composed_of = [self.composed_of] if self.composed_of is not None else []
+        self.composed_of = [v if isinstance(v, ChemicalEntity) else ChemicalEntity(**as_dict(v)) for v in self.composed_of]
 
         super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
-class ChemicalSample(MaterialSample):
-    """
-    A chemical substance that is being evaluated within a DataCreatingActivity.
-    """
+class ChemicalSample(ChemicalSubstance):
     _inherited_slots: ClassVar[List[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = CHEBI["59999"]
-    class_class_curie: ClassVar[str] = "CHEBI:59999"
+    class_class_uri: ClassVar[URIRef] = NFDI4C["ChemicalSample"]
+    class_class_curie: ClassVar[str] = "nfdi4c:ChemicalSample"
     class_name: ClassVar[str] = "ChemicalSample"
     class_model_uri: ClassVar[URIRef] = NFDI4C.ChemicalSample
 
     id: Union[str, ChemicalSampleId] = None
-    composed_of: Optional[Union[Union[dict, ChemicalEntity], List[Union[dict, ChemicalEntity]]]] = empty_list()
 
     def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
         if self._is_empty(self.id):
             self.MissingRequiredField("id")
         if not isinstance(self.id, ChemicalSampleId):
             self.id = ChemicalSampleId(self.id)
-
-        if not isinstance(self.composed_of, list):
-            self.composed_of = [self.composed_of] if self.composed_of is not None else []
-        self.composed_of = [v if isinstance(v, ChemicalEntity) else ChemicalEntity(**as_dict(v)) for v in self.composed_of]
 
         super().__post_init__(**kwargs)
 
@@ -823,96 +762,6 @@ class QuantitativeAttribute(YAMLRoot):
         super().__post_init__(**kwargs)
 
 
-@dataclass(repr=False)
-class Mass(QuantitativeAttribute):
-    """
-    Mass is the quality of the amount of a MaterialSample.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["000279"]
-    class_class_curie: ClassVar[str] = "SIO:000279"
-    class_name: ClassVar[str] = "Mass"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Mass
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
-@dataclass(repr=False)
-class Length(QuantitativeAttribute):
-    """
-    Length is the longer dimensional extent along a 2D projection of the object.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["000041"]
-    class_class_curie: ClassVar[str] = "SIO:000041"
-    class_name: ClassVar[str] = "Length"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Length
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
-@dataclass(repr=False)
-class Height(QuantitativeAttribute):
-    """
-    Height is the one dimensional extent along the vertical projection of a 3D object from a base plane of reference.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["000040"]
-    class_class_curie: ClassVar[str] = "SIO:000040"
-    class_name: ClassVar[str] = "Height"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Height
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
-@dataclass(repr=False)
-class Width(QuantitativeAttribute):
-    """
-    Width is the shorter dimensional extent perpendicular to a 2D projection of the object.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["000042"]
-    class_class_curie: ClassVar[str] = "SIO:000042"
-    class_name: ClassVar[str] = "Width"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Width
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
-@dataclass(repr=False)
-class SurfaceArea(QuantitativeAttribute):
-    """
-    The surface area of a MaterialSample is a measure of the total area that the surface of the object occupies.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["001407"]
-    class_class_curie: ClassVar[str] = "SIO:001407"
-    class_name: ClassVar[str] = "SurfaceArea"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.SurfaceArea
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
-@dataclass(repr=False)
-class Volume(QuantitativeAttribute):
-    """
-    Volume is the quantity of three-dimensional space enclosed by some closed boundary.
-    """
-    _inherited_slots: ClassVar[List[str]] = []
-
-    class_class_uri: ClassVar[URIRef] = SIO["000049"]
-    class_class_curie: ClassVar[str] = "SIO:000049"
-    class_name: ClassVar[str] = "Volume"
-    class_model_uri: ClassVar[URIRef] = NFDI4C.Volume
-
-    value: float = None
-    has_quantity_type: Union[str, DefinedTermId] = None
-
 class Activity(YAMLRoot):
     """
     See [DCAT-AP specs:Activity](https://semiceu.github.io/DCAT-AP/releases/3.0.0/#Activity)
@@ -995,8 +844,8 @@ class NMRSpectroscopy(DataCreatingActivity):
     """
     _inherited_slots: ClassVar[List[str]] = []
 
-    class_class_uri: ClassVar[URIRef] = NMR_SPECTROSCOPY["NMRSpectroscopy"]
-    class_class_curie: ClassVar[str] = "nmr_spectroscopy:NMRSpectroscopy"
+    class_class_uri: ClassVar[URIRef] = NFDI4C["NMRSpectroscopy"]
+    class_class_curie: ClassVar[str] = "nfdi4c:NMRSpectroscopy"
     class_name: ClassVar[str] = "NMRSpectroscopy"
     class_model_uri: ClassVar[URIRef] = NFDI4C.NMRSpectroscopy
 
@@ -1157,9 +1006,9 @@ class Catalogue(YAMLRoot):
     homepage: Optional[Union[dict, "Document"]] = None
     language: Optional[Union[Union[dict, "LinguisticSystem"], List[Union[dict, "LinguisticSystem"]]]] = empty_list()
     licence: Optional[Union[dict, "LicenseDocument"]] = None
-    modification_date: Optional[str] = None
+    modification_date: Optional[Union[str, XSDDateTime]] = None
     record: Optional[Union[Union[dict, "CatalogueRecord"], List[Union[dict, "CatalogueRecord"]]]] = empty_list()
-    release_date: Optional[str] = None
+    release_date: Optional[Union[str, XSDDateTime]] = None
     rights: Optional[Union[dict, "RightsStatement"]] = None
     service: Optional[Union[Union[dict, "DataService"], List[Union[dict, "DataService"]]]] = empty_list()
     temporal_coverage: Optional[Union[Union[dict, "PeriodOfTime"], List[Union[dict, "PeriodOfTime"]]]] = empty_list()
@@ -1207,7 +1056,7 @@ class Catalogue(YAMLRoot):
         self.has_part = [v if isinstance(v, Catalogue) else Catalogue(**as_dict(v)) for v in self.has_part]
 
         if self.homepage is not None and not isinstance(self.homepage, Document):
-            self.homepage = Document()
+            self.homepage = Document(**as_dict(self.homepage))
 
         if not isinstance(self.language, list):
             self.language = [self.language] if self.language is not None else []
@@ -1216,15 +1065,15 @@ class Catalogue(YAMLRoot):
         if self.licence is not None and not isinstance(self.licence, LicenseDocument):
             self.licence = LicenseDocument(**as_dict(self.licence))
 
-        if self.modification_date is not None and not isinstance(self.modification_date, str):
-            self.modification_date = str(self.modification_date)
+        if self.modification_date is not None and not isinstance(self.modification_date, XSDDateTime):
+            self.modification_date = XSDDateTime(self.modification_date)
 
         if not isinstance(self.record, list):
             self.record = [self.record] if self.record is not None else []
         self.record = [v if isinstance(v, CatalogueRecord) else CatalogueRecord(**as_dict(v)) for v in self.record]
 
-        if self.release_date is not None and not isinstance(self.release_date, str):
-            self.release_date = str(self.release_date)
+        if self.release_date is not None and not isinstance(self.release_date, XSDDateTime):
+            self.release_date = XSDDateTime(self.release_date)
 
         if self.rights is not None and not isinstance(self.rights, RightsStatement):
             self.rights = RightsStatement()
@@ -1286,7 +1135,7 @@ class CatalogueRecord(YAMLRoot):
     class_name: ClassVar[str] = "CatalogueRecord"
     class_model_uri: ClassVar[URIRef] = NFDI4C.CatalogueRecord
 
-    modification_date: str = None
+    modification_date: Union[str, XSDDateTime] = None
     primary_topic: Union[dict, "CataloguedResource"] = None
     application_profile: Optional[Union[Union[dict, "Standard"], List[Union[dict, "Standard"]]]] = empty_list()
     change_type: Optional[Union[dict, "Concept"]] = None
@@ -1299,8 +1148,8 @@ class CatalogueRecord(YAMLRoot):
     def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
         if self._is_empty(self.modification_date):
             self.MissingRequiredField("modification_date")
-        if not isinstance(self.modification_date, str):
-            self.modification_date = str(self.modification_date)
+        if not isinstance(self.modification_date, XSDDateTime):
+            self.modification_date = XSDDateTime(self.modification_date)
 
         if self._is_empty(self.primary_topic):
             self.MissingRequiredField("primary_topic")
@@ -1475,14 +1324,14 @@ class Dataset(YAMLRoot):
     keyword: Optional[Union[str, List[str]]] = empty_list()
     landing_page: Optional[Union[Union[dict, "Document"], List[Union[dict, "Document"]]]] = empty_list()
     language: Optional[Union[Union[dict, "LinguisticSystem"], List[Union[dict, "LinguisticSystem"]]]] = empty_list()
-    modification_date: Optional[str] = None
+    modification_date: Optional[Union[str, XSDDateTime]] = None
     other_identifier: Optional[Union[Union[dict, "Identifier"], List[Union[dict, "Identifier"]]]] = empty_list()
     provenance: Optional[Union[Union[dict, "ProvenanceStatement"], List[Union[dict, "ProvenanceStatement"]]]] = empty_list()
     publisher: Optional[Union[dict, "Agent"]] = None
     qualified_attribution: Optional[Union[Union[dict, "Attribution"], List[Union[dict, "Attribution"]]]] = empty_list()
     qualified_relation: Optional[Union[Union[dict, "Relationship"], List[Union[dict, "Relationship"]]]] = empty_list()
     related_resource: Optional[Union[Union[dict, "Resource"], List[Union[dict, "Resource"]]]] = empty_list()
-    release_date: Optional[str] = None
+    release_date: Optional[Union[str, XSDDateTime]] = None
     sample: Optional[Union[Union[dict, "Distribution"], List[Union[dict, "Distribution"]]]] = empty_list()
     source: Optional[Union[Union[dict, "Dataset"], List[Union[dict, "Dataset"]]]] = empty_list()
     spatial_resolution: Optional[Decimal] = None
@@ -1569,8 +1418,8 @@ class Dataset(YAMLRoot):
             self.language = [self.language] if self.language is not None else []
         self.language = [v if isinstance(v, LinguisticSystem) else LinguisticSystem(**as_dict(v)) for v in self.language]
 
-        if self.modification_date is not None and not isinstance(self.modification_date, str):
-            self.modification_date = str(self.modification_date)
+        if self.modification_date is not None and not isinstance(self.modification_date, XSDDateTime):
+            self.modification_date = XSDDateTime(self.modification_date)
 
         if not isinstance(self.other_identifier, list):
             self.other_identifier = [self.other_identifier] if self.other_identifier is not None else []
@@ -1595,8 +1444,8 @@ class Dataset(YAMLRoot):
             self.related_resource = [self.related_resource] if self.related_resource is not None else []
         self.related_resource = [v if isinstance(v, Resource) else Resource(**as_dict(v)) for v in self.related_resource]
 
-        if self.release_date is not None and not isinstance(self.release_date, str):
-            self.release_date = str(self.release_date)
+        if self.release_date is not None and not isinstance(self.release_date, XSDDateTime):
+            self.release_date = XSDDateTime(self.release_date)
 
         if not isinstance(self.sample, list):
             self.sample = [self.sample] if self.sample is not None else []
@@ -1757,9 +1606,9 @@ class DatasetSeries(YAMLRoot):
     contact_point: Optional[Union[Union[dict, "Kind"], List[Union[dict, "Kind"]]]] = empty_list()
     frequency: Optional[Union[dict, "Frequency"]] = None
     geographical_coverage: Optional[Union[Union[dict, "Location"], List[Union[dict, "Location"]]]] = empty_list()
-    modification_date: Optional[str] = None
+    modification_date: Optional[Union[str, XSDDateTime]] = None
     publisher: Optional[Union[dict, "Agent"]] = None
-    release_date: Optional[str] = None
+    release_date: Optional[Union[str, XSDDateTime]] = None
     temporal_coverage: Optional[Union[Union[dict, "PeriodOfTime"], List[Union[dict, "PeriodOfTime"]]]] = empty_list()
 
     def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
@@ -1790,14 +1639,14 @@ class DatasetSeries(YAMLRoot):
             self.geographical_coverage = [self.geographical_coverage] if self.geographical_coverage is not None else []
         self.geographical_coverage = [v if isinstance(v, Location) else Location(**as_dict(v)) for v in self.geographical_coverage]
 
-        if self.modification_date is not None and not isinstance(self.modification_date, str):
-            self.modification_date = str(self.modification_date)
+        if self.modification_date is not None and not isinstance(self.modification_date, XSDDateTime):
+            self.modification_date = XSDDateTime(self.modification_date)
 
         if self.publisher is not None and not isinstance(self.publisher, Agent):
             self.publisher = Agent(**as_dict(self.publisher))
 
-        if self.release_date is not None and not isinstance(self.release_date, str):
-            self.release_date = str(self.release_date)
+        if self.release_date is not None and not isinstance(self.release_date, XSDDateTime):
+            self.release_date = XSDDateTime(self.release_date)
 
         if not isinstance(self.temporal_coverage, list):
             self.temporal_coverage = [self.temporal_coverage] if self.temporal_coverage is not None else []
@@ -1834,9 +1683,9 @@ class Distribution(YAMLRoot):
     licence: Optional[Union[dict, "LicenseDocument"]] = None
     linked_schemas: Optional[Union[Union[dict, "Standard"], List[Union[dict, "Standard"]]]] = empty_list()
     media_type: Optional[Union[dict, "MediaType"]] = None
-    modification_date: Optional[str] = None
+    modification_date: Optional[Union[str, XSDDateTime]] = None
     packaging_format: Optional[Union[dict, "MediaType"]] = None
-    release_date: Optional[str] = None
+    release_date: Optional[Union[str, XSDDateTime]] = None
     rights: Optional[Union[dict, "RightsStatement"]] = None
     spatial_resolution: Optional[Decimal] = None
     status: Optional[Union[dict, "Concept"]] = None
@@ -1902,14 +1751,14 @@ class Distribution(YAMLRoot):
         if self.media_type is not None and not isinstance(self.media_type, MediaType):
             self.media_type = MediaType()
 
-        if self.modification_date is not None and not isinstance(self.modification_date, str):
-            self.modification_date = str(self.modification_date)
+        if self.modification_date is not None and not isinstance(self.modification_date, XSDDateTime):
+            self.modification_date = XSDDateTime(self.modification_date)
 
         if self.packaging_format is not None and not isinstance(self.packaging_format, MediaType):
             self.packaging_format = MediaType()
 
-        if self.release_date is not None and not isinstance(self.release_date, str):
-            self.release_date = str(self.release_date)
+        if self.release_date is not None and not isinstance(self.release_date, XSDDateTime):
+            self.release_date = XSDDateTime(self.release_date)
 
         if self.rights is not None and not isinstance(self.rights, RightsStatement):
             self.rights = RightsStatement()
@@ -2072,6 +1921,7 @@ class ConceptScheme(SupportiveEntity):
         super().__post_init__(**kwargs)
 
 
+@dataclass(repr=False)
 class Document(SupportiveEntity):
     """
     See [DCAT-AP specs:Document](https://semiceu.github.io/DCAT-AP/releases/3.0.0/#Document)
@@ -2082,6 +1932,16 @@ class Document(SupportiveEntity):
     class_class_curie: ClassVar[str] = "foaf:Document"
     class_name: ClassVar[str] = "Document"
     class_model_uri: ClassVar[URIRef] = NFDI4C.Document
+
+    identifier: Union[str, URIorCURIE] = None
+
+    def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
+        if self._is_empty(self.identifier):
+            self.MissingRequiredField("identifier")
+        if not isinstance(self.identifier, URIorCURIE):
+            self.identifier = URIorCURIE(self.identifier)
+
+        super().__post_init__(**kwargs)
 
 
 class Frequency(SupportiveEntity):
@@ -2177,6 +2037,7 @@ class LicenseDocument(SupportiveEntity):
         super().__post_init__(**kwargs)
 
 
+@dataclass(repr=False)
 class LinguisticSystem(SupportiveEntity):
     """
     See [DCAT-AP specs:LinguisticSystem](https://semiceu.github.io/DCAT-AP/releases/3.0.0/#LinguisticSystem)
@@ -2187,6 +2048,16 @@ class LinguisticSystem(SupportiveEntity):
     class_class_curie: ClassVar[str] = "dcterms:LinguisticSystem"
     class_name: ClassVar[str] = "LinguisticSystem"
     class_model_uri: ClassVar[URIRef] = NFDI4C.LinguisticSystem
+
+    language_tag: str = None
+
+    def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
+        if self._is_empty(self.language_tag):
+            self.MissingRequiredField("language_tag")
+        if not isinstance(self.language_tag, str):
+            self.language_tag = str(self.language_tag)
+
+        super().__post_init__(**kwargs)
 
 
 @dataclass(repr=False)
@@ -2366,6 +2237,7 @@ class Role(SupportiveEntity):
     class_model_uri: ClassVar[URIRef] = NFDI4C.Role
 
 
+@dataclass(repr=False)
 class Standard(SupportiveEntity):
     """
     See [DCAT-AP specs:Standard](https://semiceu.github.io/DCAT-AP/releases/3.0.0/#Standard)
@@ -2376,6 +2248,16 @@ class Standard(SupportiveEntity):
     class_class_curie: ClassVar[str] = "dcterms:Standard"
     class_name: ClassVar[str] = "Standard"
     class_model_uri: ClassVar[URIRef] = NFDI4C.Standard
+
+    identifier: Union[str, URIorCURIE] = None
+
+    def __post_init__(self, *_: List[str], **kwargs: Dict[str, Any]):
+        if self._is_empty(self.identifier):
+            self.MissingRequiredField("identifier")
+        if not isinstance(self.identifier, URIorCURIE):
+            self.identifier = URIorCURIE(self.identifier)
+
+        super().__post_init__(**kwargs)
 
 
 class TimeInstant(SupportiveEntity):
@@ -2510,26 +2392,8 @@ class TopLevelMediaTypes(EnumDefinitionImpl):
 class slots:
     pass
 
-slots.has_mass = Slot(uri=DCTERMS.relation, name="has_mass", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_mass, domain=None, range=Optional[Union[dict, Mass]])
-
-slots.has_length = Slot(uri=DCTERMS.relation, name="has_length", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_length, domain=None, range=Optional[Union[dict, Length]])
-
-slots.has_width = Slot(uri=DCTERMS.relation, name="has_width", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_width, domain=None, range=Optional[Union[dict, Width]])
-
-slots.has_height = Slot(uri=DCTERMS.relation, name="has_height", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_height, domain=None, range=Optional[Union[dict, Height]])
-
-slots.has_surface_area = Slot(uri=DCTERMS.relation, name="has_surface_area", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_surface_area, domain=None, range=Optional[Union[dict, SurfaceArea]])
-
-slots.has_volume = Slot(uri=DCTERMS.relation, name="has_volume", curie=DCTERMS.curie('relation'),
-                   model_uri=NFDI4C.has_volume, domain=None, range=Optional[Union[dict, Volume]])
-
-slots.was_derived_from = Slot(uri=PROV.wasDerivedFrom, name="was_derived_from", curie=PROV.curie('wasDerivedFrom'),
-                   model_uri=NFDI4C.was_derived_from, domain=None, range=Optional[str])
+slots.has_role = Slot(uri=NFDI4C.has_role, name="has_role", curie=NFDI4C.curie('has_role'),
+                   model_uri=NFDI4C.has_role, domain=None, range=Optional[str])
 
 slots.id = Slot(uri=DCTERMS.identifier, name="id", curie=DCTERMS.curie('identifier'),
                    model_uri=NFDI4C.id, domain=None, range=URIRef)
@@ -2696,6 +2560,9 @@ slots.landing_page = Slot(uri=DCAT.landingPage, name="landing_page", curie=DCAT.
 slots.language = Slot(uri=DCTERMS.language, name="language", curie=DCTERMS.curie('language'),
                    model_uri=NFDI4C.language, domain=None, range=Optional[str])
 
+slots.language_tag = Slot(uri=RDF.value, name="language_tag", curie=RDF.curie('value'),
+                   model_uri=NFDI4C.language_tag, domain=None, range=str)
+
 slots.licence = Slot(uri=DCTERMS.license, name="licence", curie=DCTERMS.curie('license'),
                    model_uri=NFDI4C.licence, domain=None, range=Optional[str])
 
@@ -2807,19 +2674,19 @@ slots.version_notes = Slot(uri=ADMS.versionNotes, name="version_notes", curie=AD
 slots.was_generated_by = Slot(uri=PROV.wasGeneratedBy, name="was_generated_by", curie=PROV.curie('wasGeneratedBy'),
                    model_uri=NFDI4C.was_generated_by, domain=None, range=Optional[str])
 
-slots.chemicalSubstance__composed_of = Slot(uri=RO['0002180'], name="chemicalSubstance__composed_of", curie=RO.curie('0002180'),
+slots.chemicalSubstance__composed_of = Slot(uri=NFDI4C.composed_of, name="chemicalSubstance__composed_of", curie=NFDI4C.curie('composed_of'),
                    model_uri=NFDI4C.chemicalSubstance__composed_of, domain=None, range=Optional[Union[Union[dict, ChemicalEntity], List[Union[dict, ChemicalEntity]]]])
 
-slots.chemicalEntity__inchi = Slot(uri=CHEMINF['000143'], name="chemicalEntity__inchi", curie=CHEMINF.curie('000143'),
+slots.chemicalEntity__inchi = Slot(uri=NFDI4C.inchi, name="chemicalEntity__inchi", curie=NFDI4C.curie('inchi'),
                    model_uri=NFDI4C.chemicalEntity__inchi, domain=None, range=Optional[Union[dict, InChi]])
 
-slots.chemicalEntity__inchikey = Slot(uri=CHEMINF['000143'], name="chemicalEntity__inchikey", curie=CHEMINF.curie('000143'),
+slots.chemicalEntity__inchikey = Slot(uri=NFDI4C.inchikey, name="chemicalEntity__inchikey", curie=NFDI4C.curie('inchikey'),
                    model_uri=NFDI4C.chemicalEntity__inchikey, domain=None, range=Optional[Union[dict, InChIKey]])
 
-slots.chemicalEntity__smiles = Slot(uri=CHEMINF['000143'], name="chemicalEntity__smiles", curie=CHEMINF.curie('000143'),
+slots.chemicalEntity__smiles = Slot(uri=NFDI4C.smiles, name="chemicalEntity__smiles", curie=NFDI4C.curie('smiles'),
                    model_uri=NFDI4C.chemicalEntity__smiles, domain=None, range=Optional[Union[dict, SMILES]])
 
-slots.chemicalEntity__iupac_formula = Slot(uri=CHEMINF['000143'], name="chemicalEntity__iupac_formula", curie=CHEMINF.curie('000143'),
+slots.chemicalEntity__iupac_formula = Slot(uri=NFDI4C.iupac_formula, name="chemicalEntity__iupac_formula", curie=NFDI4C.curie('iupac_formula'),
                    model_uri=NFDI4C.chemicalEntity__iupac_formula, domain=None, range=Optional[Union[dict, IUPACChemicalFormula]])
 
 slots.definedTerm__from_CV = Slot(uri=SCHEMA.inDefinedTermSet, name="definedTerm__from_CV", curie=SCHEMA.curie('inDefinedTermSet'),
@@ -2830,9 +2697,6 @@ slots.quantitativeAttribute__has_quantity_type = Slot(uri=QUDT.hasQuantityKind, 
 
 slots.quantitativeAttribute__unit = Slot(uri=QUDT.unit, name="quantitativeAttribute__unit", curie=QUDT.curie('unit'),
                    model_uri=NFDI4C.quantitativeAttribute__unit, domain=None, range=Optional[Union[str, DefinedTermId]])
-
-slots.NMRSpectrum_was_generated_by = Slot(uri=PROV.wasGeneratedBy, name="NMRSpectrum_was_generated_by", curie=PROV.curie('wasGeneratedBy'),
-                   model_uri=NFDI4C.NMRSpectrum_was_generated_by, domain=NMRSpectrum, range=Optional[Union[Union[dict, "NMRSpectroscopy"], List[Union[dict, "NMRSpectroscopy"]]]])
 
 slots.NMRAnalysisDataset_was_generated_by = Slot(uri=PROV.wasGeneratedBy, name="NMRAnalysisDataset_was_generated_by", curie=PROV.curie('wasGeneratedBy'),
                    model_uri=NFDI4C.NMRAnalysisDataset_was_generated_by, domain=NMRAnalysisDataset, range=Optional[Union[Union[dict, NMRSpectralAnalysis], List[Union[dict, NMRSpectralAnalysis]]]])
@@ -2849,8 +2713,8 @@ slots.NMRSpectroscopy_evaluated_entity = Slot(uri=PROV.used, name="NMRSpectrosco
 slots.NMRSpectroscopy_rdf_type = Slot(uri=RDF.type, name="NMRSpectroscopy_rdf_type", curie=RDF.curie('type'),
                    model_uri=NFDI4C.NMRSpectroscopy_rdf_type, domain=NMRSpectroscopy, range=Optional[Union[dict, DefinedTerm]])
 
-slots.MaterialSample_was_derived_from = Slot(uri=PROV.wasDerivedFrom, name="MaterialSample_was_derived_from", curie=PROV.curie('wasDerivedFrom'),
-                   model_uri=NFDI4C.MaterialSample_was_derived_from, domain=MaterialSample, range=Optional[Union[str, MaterialSampleId]])
+slots.NMRSpectrum_was_generated_by = Slot(uri=PROV.wasGeneratedBy, name="NMRSpectrum_was_generated_by", curie=PROV.curie('wasGeneratedBy'),
+                   model_uri=NFDI4C.NMRSpectrum_was_generated_by, domain=NMRSpectrum, range=Optional[Union[Union[dict, "NMRSpectroscopy"], List[Union[dict, "NMRSpectroscopy"]]]])
 
 slots.ClassifierMixin_type = Slot(uri=DCTERMS.type, name="ClassifierMixin_type", curie=DCTERMS.curie('type'),
                    model_uri=NFDI4C.ClassifierMixin_type, domain=None, range=Optional[Union[dict, "DefinedTerm"]])
@@ -2946,7 +2810,7 @@ slots.Catalogue_licence = Slot(uri=DCTERMS.license, name="Catalogue_licence", cu
                    model_uri=NFDI4C.Catalogue_licence, domain=Catalogue, range=Optional[Union[dict, "LicenseDocument"]])
 
 slots.Catalogue_modification_date = Slot(uri=DCTERMS.modified, name="Catalogue_modification_date", curie=DCTERMS.curie('modified'),
-                   model_uri=NFDI4C.Catalogue_modification_date, domain=Catalogue, range=Optional[str])
+                   model_uri=NFDI4C.Catalogue_modification_date, domain=Catalogue, range=Optional[Union[str, XSDDateTime]])
 
 slots.Catalogue_publisher = Slot(uri=DCTERMS.publisher, name="Catalogue_publisher", curie=DCTERMS.curie('publisher'),
                    model_uri=NFDI4C.Catalogue_publisher, domain=Catalogue, range=Union[dict, "Agent"])
@@ -2955,7 +2819,7 @@ slots.Catalogue_record = Slot(uri=DCAT.record, name="Catalogue_record", curie=DC
                    model_uri=NFDI4C.Catalogue_record, domain=Catalogue, range=Optional[Union[Union[dict, "CatalogueRecord"], List[Union[dict, "CatalogueRecord"]]]])
 
 slots.Catalogue_release_date = Slot(uri=DCTERMS.issued, name="Catalogue_release_date", curie=DCTERMS.curie('issued'),
-                   model_uri=NFDI4C.Catalogue_release_date, domain=Catalogue, range=Optional[str])
+                   model_uri=NFDI4C.Catalogue_release_date, domain=Catalogue, range=Optional[Union[str, XSDDateTime]])
 
 slots.Catalogue_rights = Slot(uri=DCTERMS.rights, name="Catalogue_rights", curie=DCTERMS.curie('rights'),
                    model_uri=NFDI4C.Catalogue_rights, domain=Catalogue, range=Optional[Union[dict, "RightsStatement"]])
@@ -2988,7 +2852,7 @@ slots.CatalogueRecord_listing_date = Slot(uri=DCTERMS.issued, name="CatalogueRec
                    model_uri=NFDI4C.CatalogueRecord_listing_date, domain=CatalogueRecord, range=Optional[str])
 
 slots.CatalogueRecord_modification_date = Slot(uri=DCTERMS.modified, name="CatalogueRecord_modification_date", curie=DCTERMS.curie('modified'),
-                   model_uri=NFDI4C.CatalogueRecord_modification_date, domain=CatalogueRecord, range=str)
+                   model_uri=NFDI4C.CatalogueRecord_modification_date, domain=CatalogueRecord, range=Union[str, XSDDateTime])
 
 slots.CatalogueRecord_primary_topic = Slot(uri=FOAF.primaryTopic, name="CatalogueRecord_primary_topic", curie=FOAF.curie('primaryTopic'),
                    model_uri=NFDI4C.CatalogueRecord_primary_topic, domain=CatalogueRecord, range=Union[dict, "CataloguedResource"])
@@ -3111,7 +2975,7 @@ slots.Dataset_language = Slot(uri=DCTERMS.language, name="Dataset_language", cur
                    model_uri=NFDI4C.Dataset_language, domain=Dataset, range=Optional[Union[Union[dict, "LinguisticSystem"], List[Union[dict, "LinguisticSystem"]]]])
 
 slots.Dataset_modification_date = Slot(uri=DCTERMS.modified, name="Dataset_modification_date", curie=DCTERMS.curie('modified'),
-                   model_uri=NFDI4C.Dataset_modification_date, domain=Dataset, range=Optional[str])
+                   model_uri=NFDI4C.Dataset_modification_date, domain=Dataset, range=Optional[Union[str, XSDDateTime]])
 
 slots.Dataset_other_identifier = Slot(uri=ADMS.identifier, name="Dataset_other_identifier", curie=ADMS.curie('identifier'),
                    model_uri=NFDI4C.Dataset_other_identifier, domain=Dataset, range=Optional[Union[Union[dict, "Identifier"], List[Union[dict, "Identifier"]]]])
@@ -3132,7 +2996,7 @@ slots.Dataset_related_resource = Slot(uri=DCTERMS.relation, name="Dataset_relate
                    model_uri=NFDI4C.Dataset_related_resource, domain=Dataset, range=Optional[Union[Union[dict, "Resource"], List[Union[dict, "Resource"]]]])
 
 slots.Dataset_release_date = Slot(uri=DCTERMS.issued, name="Dataset_release_date", curie=DCTERMS.curie('issued'),
-                   model_uri=NFDI4C.Dataset_release_date, domain=Dataset, range=Optional[str])
+                   model_uri=NFDI4C.Dataset_release_date, domain=Dataset, range=Optional[Union[str, XSDDateTime]])
 
 slots.Dataset_sample = Slot(uri=ADMS.sample, name="Dataset_sample", curie=ADMS.curie('sample'),
                    model_uri=NFDI4C.Dataset_sample, domain=Dataset, range=Optional[Union[Union[dict, "Distribution"], List[Union[dict, "Distribution"]]]])
@@ -3183,13 +3047,13 @@ slots.DatasetSeries_geographical_coverage = Slot(uri=DCTERMS.spatial, name="Data
                    model_uri=NFDI4C.DatasetSeries_geographical_coverage, domain=DatasetSeries, range=Optional[Union[Union[dict, "Location"], List[Union[dict, "Location"]]]])
 
 slots.DatasetSeries_modification_date = Slot(uri=DCTERMS.modified, name="DatasetSeries_modification_date", curie=DCTERMS.curie('modified'),
-                   model_uri=NFDI4C.DatasetSeries_modification_date, domain=DatasetSeries, range=Optional[str])
+                   model_uri=NFDI4C.DatasetSeries_modification_date, domain=DatasetSeries, range=Optional[Union[str, XSDDateTime]])
 
 slots.DatasetSeries_publisher = Slot(uri=DCTERMS.publisher, name="DatasetSeries_publisher", curie=DCTERMS.curie('publisher'),
                    model_uri=NFDI4C.DatasetSeries_publisher, domain=DatasetSeries, range=Optional[Union[dict, "Agent"]])
 
 slots.DatasetSeries_release_date = Slot(uri=DCTERMS.issued, name="DatasetSeries_release_date", curie=DCTERMS.curie('issued'),
-                   model_uri=NFDI4C.DatasetSeries_release_date, domain=DatasetSeries, range=Optional[str])
+                   model_uri=NFDI4C.DatasetSeries_release_date, domain=DatasetSeries, range=Optional[Union[str, XSDDateTime]])
 
 slots.DatasetSeries_temporal_coverage = Slot(uri=DCTERMS.temporal, name="DatasetSeries_temporal_coverage", curie=DCTERMS.curie('temporal'),
                    model_uri=NFDI4C.DatasetSeries_temporal_coverage, domain=DatasetSeries, range=Optional[Union[Union[dict, "PeriodOfTime"], List[Union[dict, "PeriodOfTime"]]]])
@@ -3246,13 +3110,13 @@ slots.Distribution_media_type = Slot(uri=DCAT.mediaType, name="Distribution_medi
                    model_uri=NFDI4C.Distribution_media_type, domain=Distribution, range=Optional[Union[dict, "MediaType"]])
 
 slots.Distribution_modification_date = Slot(uri=DCTERMS.modified, name="Distribution_modification_date", curie=DCTERMS.curie('modified'),
-                   model_uri=NFDI4C.Distribution_modification_date, domain=Distribution, range=Optional[str])
+                   model_uri=NFDI4C.Distribution_modification_date, domain=Distribution, range=Optional[Union[str, XSDDateTime]])
 
 slots.Distribution_packaging_format = Slot(uri=DCAT.packageFormat, name="Distribution_packaging_format", curie=DCAT.curie('packageFormat'),
                    model_uri=NFDI4C.Distribution_packaging_format, domain=Distribution, range=Optional[Union[dict, "MediaType"]])
 
 slots.Distribution_release_date = Slot(uri=DCTERMS.issued, name="Distribution_release_date", curie=DCTERMS.curie('issued'),
-                   model_uri=NFDI4C.Distribution_release_date, domain=Distribution, range=Optional[str])
+                   model_uri=NFDI4C.Distribution_release_date, domain=Distribution, range=Optional[Union[str, XSDDateTime]])
 
 slots.Distribution_rights = Slot(uri=DCTERMS.rights, name="Distribution_rights", curie=DCTERMS.curie('rights'),
                    model_uri=NFDI4C.Distribution_rights, domain=Distribution, range=Optional[Union[dict, "RightsStatement"]])
@@ -3268,6 +3132,9 @@ slots.Distribution_temporal_resolution = Slot(uri=DCAT.temporalResolution, name=
 
 slots.Distribution_title = Slot(uri=DCTERMS.title, name="Distribution_title", curie=DCTERMS.curie('title'),
                    model_uri=NFDI4C.Distribution_title, domain=Distribution, range=Optional[Union[str, List[str]]])
+
+slots.Document_identifier = Slot(uri=DCTERMS.identifier, name="Document_identifier", curie=DCTERMS.curie('identifier'),
+                   model_uri=NFDI4C.Document_identifier, domain=Document, range=Union[str, URIorCURIE])
 
 slots.Identifier_notation = Slot(uri=SKOS.notation, name="Identifier_notation", curie=SKOS.curie('notation'),
                    model_uri=NFDI4C.Identifier_notation, domain=Identifier, range=Union[str, URI])
@@ -3301,3 +3168,6 @@ slots.Relationship_had_role = Slot(uri=DCAT.hadRole, name="Relationship_had_role
 
 slots.Relationship_relation = Slot(uri=DCTERMS.relation, name="Relationship_relation", curie=DCTERMS.curie('relation'),
                    model_uri=NFDI4C.Relationship_relation, domain=Relationship, range=Union[Union[dict, "Resource"], List[Union[dict, "Resource"]]])
+
+slots.Standard_identifier = Slot(uri=DCTERMS.identifier, name="Standard_identifier", curie=DCTERMS.curie('identifier'),
+                   model_uri=NFDI4C.Standard_identifier, domain=Standard, range=Union[str, URIorCURIE])

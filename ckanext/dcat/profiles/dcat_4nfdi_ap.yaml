@@ -162,7 +162,7 @@ classes:
     in_subset:
       - domain_agnostic_core
 
-  "DataAnalysis":
+  DataAnalysis:
     is_a: DataCreatingActivity
     class_uri: prov:Activity
     description: A DataCreatingActivity that evaluates the data produced by another DataCreatingActivity.

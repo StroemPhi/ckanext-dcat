@@ -1,4 +1,14 @@
-from dcat_4c_ap import AnalysisDataset, LinguisticSystem, Document, DataAnalysis, DefinedTerm
+from dcat_4c_ap import (Agent,
+                        AnalysisDataset, 
+                        AnalysisSourceData,
+                        DataAnalysis,
+                        DataCreatingActivity,
+                        DefinedTerm,
+                        Document,
+                        EvaluatedEntity,
+                        LinguisticSystem, 
+                        Standard, 
+                        QualitativeAttribute)
 from linkml_runtime.dumpers import RDFLibDumper
 from linkml_runtime.utils.schemaview import SchemaView
 import yaml
@@ -140,9 +150,11 @@ example_dataset = {
     ]
 }
 
+# TODO: Think about which namespaces shouldbe passed to the RDFLibDumper as prefix_map for those prefixes that are
+#  not already part of the DCAT-AP schema YAMLs. Should probably just be a Python dict maintained in this profile.
+
 def graph_from_dataset(dataset_dict):
-    # First we need the mandatory fields to be able to initialize the AnalysisDataset class
-    
+    # Get the ID of the dataset
     if dataset_dict.get('doi'):
         dataset_uri = 'https://doi.org/' + dataset_dict.get('doi')
         # not a mandatory field, but makes sense to do this here as it's the same value as the node URI
@@ -150,39 +162,128 @@ def graph_from_dataset(dataset_dict):
     else:
         dataset_uri = dataset_dict.get('id').strip()
         dataset_id = dataset_dict.get('id').strip()
-    
-    title = dataset_dict.get('title')
-    description = dataset_dict.get('notes')
 
-    dataset = AnalysisDataset(id=dataset_uri, 
-                              title=[title], 
-                              description=[description],
-                              was_generated_by=DataAnalysis(
-                                  rdf_type= DefinedTerm(
-                                      id=dataset_dict.get('measurement_technique_iri'),
-                                      title=dataset_dict.get('measurement_technique'))),
-                              identifier=[dataset_id]
+    # Instantiate the evaluated sample
+    # TODO: We used a fake ID, as the real one is not within the example dataset, but might be in the source data.
+    # TODO: Do we need different instantiation steps/conditions based on where the metadata comes from?
+    sample = EvaluatedEntity(
+        id=dataset_id + '/sample',
+        has_qualitative_attribute=[
+            QualitativeAttribute(
+                rdf_type=DefinedTerm(
+                    id='CHEMINF:000059',
+                    title='InChiKey'),
+                title='assigned InChiKey',
+                value=dataset_dict.get('inchi_key')),
+            QualitativeAttribute(
+                rdf_type=DefinedTerm(
+                    id='CHEMINF:000113',
+                    title='InChi'),
+                title='assigned InChi',
+                value=dataset_dict.get('inchi')),
+            QualitativeAttribute(
+                rdf_type=DefinedTerm(
+                    id='CHEMINF:000018',
+                    title='SMILES'),
+                title='assigned SMILES',
+                value=dataset_dict.get('smiles')),
+            QualitativeAttribute(
+                rdf_type=DefinedTerm(
+                    id='CHEMINF:000037',
+                    title='IUPACChemicalFormula'),
+                title='assigned IUPACChemicalFormula',
+                value=dataset_dict.get('mol_formula'))
+        ]
+    )
+
+    # Instantiate the measurement process/activity
+    if dataset_dict.get('measurement_technique_iri'):
+        measurement = DataCreatingActivity(
+            rdf_type=DefinedTerm(
+                id=dataset_dict.get('measurement_technique_iri'),
+                title=dataset_dict.get('measurement_technique')),
+            evaluated_entity=[sample]
+        )
+    # TODO: add a condition to account for MassBank and other sources not providing this, where we could hardcode,
+    #  like in the below Massbank example.
+    # elif source == 'Massbank:
+    #    measurement = DataCreatingActivity(
+    #        rdf_type=DefinedTerm(
+    #            id='CHMO:0000470',
+    #            title='mass spectrometry,
+    #        evaluated_entity=[sample]
+    #    )
+
+    # Instantiate the spectrum that was analysed by the measurement with a fake ID, as it does not have one,
+    # but the ID is a mandatory slot for an AnalysisSourceData (which is a EvaluatedEntity)
+    # Hardcode the rdf_type, as this is necessary in the domain agnostic version of our DCAT-AP extension
+    spectrum = AnalysisSourceData(
+        id=dataset_id + '/spectrum',
+        rdf_type=DefinedTerm(id='CHMO:0000800',
+                             title='spectrum'),
+        was_generated_by=[measurement]
+    )
+
+    # Instantiate the analysis of the spectrum
+    # Hardcode the rdf_type, as this is necessary in this domain agnostic version of our DCAT-AP extension
+    analysis = DataAnalysis(
+        rdf_type=DefinedTerm(
+            id='http://purl.allotrope.org/ontologies/process#AFP_0003618',
+            title='peak identification'),
+        evaluated_entity=[spectrum])
+
+    # Instantiate the dataset
+    dataset = AnalysisDataset(id=dataset_uri,
+                              title=dataset_dict.get('title'),
+                              description=dataset_dict.get('notes'),
+                              was_generated_by=analysis,
+                              identifier=dataset_id,
+                              describes_entity={'id': dataset_id + '/sample'},
+                              # using nmrXiv docs just as a dummy example for how we could use this slot
+                              # TODO: Use MICHI PURL once possible
+                              conforms_to=Standard(
+                                  identifier='https://docs.nmrxiv.org/submission-guides/data-model/spectra.html')
                               )
-    
-    # This will likely not work yet, as the LinguisticSystem and Document class do not have any properties specified in 
-    # the DCAT-AP SHACL shapes, so we'd have to inject them in the dcat-ap2linkml parsing step.
-    #if dataset_dict.get('language'):
-        #dataset.language.append(LinguisticSystem(dataset_dict.get('language')))
-    #if dataset_dict.get('url'):
-        #dataset.landing_page = Document(dataset_dict.get('url'))
-    
-    # In the linkml representation of DCAT-AP the datatime datatyp has not been implemented yet, so the following
-    # two will be interpreted as strings.
+
+    # Add language attribute to the dataset
+    # TODO: Simplify, once normalization happens in the previous harvesting/parsing step
+    if dataset_dict.get('language'):
+        if dataset_dict.get('language') == 'english':
+            dataset.language.append(LinguisticSystem(language_tag='en'))
+        else:
+            dataset.language.append(LinguisticSystem(language_tag=dataset_dict.get('language')))
+
+    # Add landing_page attribute to the dataset
+    if dataset_dict.get('url'):
+        dataset.landing_page = Document(identifier=dataset_dict.get('url'))
+
+    # Add release_date attribute to the dataset
     dataset.release_date = dataset_dict.get('metadata_created')
+
+    # Add modification_date attribute to the dataset
     dataset.modification_date = dataset_dict.get('metadata_modified')
-    
+
+    # Add creators to the dataset
+    # TODO: Simplify, once normalization happens in the previous harvesting/parsing step
+    # WILL ONLY WORK IF 'author' is a list of authors not all mushed in a string
+    creators = []
+    # Dirty parsing workaround for the above nmrXiv example
+    try:
+        for creator in dataset_dict.get('author').replace('., ', '.|').split('|'):
+            creators.append(Agent(name=creator))
+            dataset.creator = creators
+    except:
+        print(f'{dataset_dict.get('author')} is not a parsable list of authors')
+
+    #TODO: parse the rest of the given dataset attributes, most importantly the measurement variables
+
     g = RDFLibDumper().as_rdf_graph(dataset, schemaview=SchemaView("dcat_4c_ap.yaml", merge_imports=True))
 
     return print(g.serialize(format='ttl'))
 
 def main():
     graph_from_dataset(example_dataset)
-    
+
 def check_yaml():
     # Open the YAML file
     with open('dcat_4c_ap.yaml', 'r') as file:

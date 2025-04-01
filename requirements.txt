@@ -2,3 +2,15 @@ rdflib>=6.1.1,<7.1.0
 geomet>=0.2.0
 ckantoolkit>=0.0.7
 future>=0.18.2
+
+pytest~=8.3.5
+ckan~=2.11.2
+python-dateutil~=2.9.0.post0
+six~=1.17.0
+click~=8.1.8
+jsonasobj2~=1.0.4
+PyYAML~=6.0.2
+simplejson~=3.20.1
+requests~=2.32.3
+Flask~=3.1.0
+setuptools~=78.1.0
