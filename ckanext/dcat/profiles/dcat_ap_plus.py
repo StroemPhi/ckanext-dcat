@@ -75,67 +75,55 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
         ]
         return dataset_dict
 
-    def graph_from_dataset(self,dataset_dict,dataset_ref):
-
-        # super().graph_from_dataset(dataset_dict, dataset_ref)
+    def graph_from_dataset(self, dataset_dict, dataset_ref):
 
         for prefix, namespace in namespaces.items():
             self.g.bind(prefix, namespace)
 
-        # Get the ID of the dataset
+        # --- dataset URI (single canonical URI = DOI if available) ---
         if dataset_dict.get('doi'):
             dataset_uri = 'https://doi.org/' + dataset_dict.get('doi')
-            # not a mandatory field, but makes sense to do this here as it's the same value as the node URI
-            dataset_id = 'https://doi.org/' + dataset_dict.get('doi')
+            dataset_id = dataset_uri
         else:
             dataset_uri = dataset_dict.get('id').strip()
-            dataset_id = dataset_dict.get('id').strip()
+            dataset_id = dataset_uri
 
-        # Instantiate the evaluated sample
-        # TODO: We used a fake ID, as the real one is not within the example dataset, but might be in the source data.
-        # TODO: Do we need different instantiation steps/conditions based on where the metadata comes from?
-
+        # --- sample ---
         sample = EvaluatedEntity(
             id=dataset_id + '/sample',
             has_qualitative_attribute=[
                 QualitativeAttribute(
-                    rdf_type=DefinedTerm(
-                        id='CHEMINF:000059',
-                        title='InChiKey'),
+                    rdf_type=DefinedTerm(id='CHEMINF:000059', title='InChiKey'),
                     title='assigned InChiKey',
-                    value=dataset_dict.get('inchi_key') or "not available"),
+                    value=dataset_dict.get('inchi_key') or "not available"
+                ),
                 QualitativeAttribute(
-                    rdf_type=DefinedTerm(
-                        id='CHEMINF:000113',
-                        title='InChi'),
+                    rdf_type=DefinedTerm(id='CHEMINF:000113', title='InChi'),
                     title='assigned InChi',
-                    value=dataset_dict.get('inchi')),
+                    value=dataset_dict.get('inchi')
+                ),
                 QualitativeAttribute(
-                    rdf_type=DefinedTerm(
-                        id='CHEMINF:000018',
-                        title='SMILES'),
+                    rdf_type=DefinedTerm(id='CHEMINF:000018', title='SMILES'),
                     title='assigned SMILES',
-                    value=dataset_dict.get('smiles')),
+                    value=dataset_dict.get('smiles')
+                ),
                 QualitativeAttribute(
-                    rdf_type=DefinedTerm(
-                        id='CHEMINF:000037',
-                        title='IUPACChemicalFormula'),
+                    rdf_type=DefinedTerm(id='CHEMINF:000037', title='IUPACChemicalFormula'),
                     title='assigned IUPACChemicalFormula',
-                    value= dataset_dict.get('mol_formula') or "not available" )
+                    value=dataset_dict.get('mol_formula') or "not available"
+                )
             ]
         )
 
-        # Instantiate the measurement process/activity
-        # --- measurement (Activity) ---
+        # --- measurement ---
         measurement = None
         if dataset_dict.get('measurement_technique_iri'):
             measurement = DataCreatingActivity(
-                id=f"{dataset_id}/measurement",  # required
+                id=f"{dataset_id}/measurement",
                 rdf_type=DefinedTerm(
                     id=dataset_dict['measurement_technique_iri'],
                     title=dataset_dict.get('measurement_technique')
                 )
-                # NOTE: remove evaluated_entity=[sample]  <-- not a valid slot on Activity in your schema
             )
 
         # --- spectrum ---
@@ -149,12 +137,12 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
 
         # --- analysis ---
         analysis = DataAnalysis(
-            id=f"{dataset_id}/analysis",  # required
+            id=f"{dataset_id}/analysis",
             rdf_type=DefinedTerm(
                 id='http://purl.allotrope.org/ontologies/process#AFP_0003618',
                 title='peak identification'
             ),
-            evaluated_entity=[spectrum]  # this slot exists on DataAnalysis in your model
+            evaluated_entity=[spectrum]
         )
 
         # --- dataset ---
@@ -164,13 +152,13 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
             description=dataset_dict.get('notes') or 'No description',
             was_generated_by=analysis,
             identifier=dataset_id,
-            is_about_entity = sample,
-            conforms_to = Standard(
+            is_about_entity=sample,
+            conforms_to=Standard(
                 id='https://docs.nmrxiv.org/submission-guides/data-model/spectra.html'
-            ))
+            )
+        )
 
-        # )
-
+        # --- creators ---
         creators = []
         try:
             if dataset_dict.get('author'):
@@ -182,42 +170,28 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
         except Exception as e:
             log.error(e)
 
-        #Add language attribute to the dataset
-        # TODO: Simplify, once normalization happens in the previous harvesting/parsing step
-        # ensure it's a list
-        if not getattr(dataset, 'language', None):
-            dataset.language = []
-
-        #raw_lang = dataset_dict.get('language')
+        # --- language normalization ---
         raw_lang = (dataset_dict.get('language') or '').strip().lower()
-
         if raw_lang in ('english', 'en', 'en-us', 'en-gb', 'eng'):
             code = 'en'
         elif raw_lang in ('deutsch', 'german', 'de'):
             code = 'de'
         elif raw_lang:
-            code = raw_lang  # assume it's already a code like 'fr', 'es', ...
+            code = raw_lang
         else:
-            code = 'en'  # default
+            code = 'en'
 
-
-        # else:
-        #     dataset.language.append(LinguisticSystem(language_tag='en'))
-
-        # Add landing_page attribute to the dataset
+        # --- landing page ---
         if dataset_dict.get('url'):
             dataset.landing_page = Document(id=dataset_dict.get('url'))
 
-        # Add release_date attribute to the dataset
+        # --- dates ---
         dataset.release_date = dataset_dict.get('metadata_created')
-
-        # Add modification_date attribute to the dataset
         dataset.modification_date = dataset_dict.get('metadata_modified')
 
         schemaview = SchemaView(schema="/usr/lib/ckan/default/src/ckanext-dcat/ckanext/dcat/schemas/dcat_4c_ap.yaml")
         rdf_nfdi_dumper = RDFLibDumper()
 
-        # Dump each LinkML object you want in the graph
         try:
             nfdi_graph = rdf_nfdi_dumper.as_rdf_graph(dataset, schemaview=schemaview)
             nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(sample, schemaview=schemaview)
@@ -225,24 +199,42 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
             nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(spectrum, schemaview=schemaview)
             if measurement is not None:
                 nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(measurement, schemaview=schemaview)
-
         except Exception as e:
             log.warning("DCAT-AP-PLUS serialization skipped: %s", e)
             return None
 
-        # Now add the link between dataset and sample using rdflib (choose the predicate you want)
-        from rdflib import URIRef, BNode
+        from rdflib import URIRef, BNode, Literal
+
+        dataset_node = URIRef(dataset_uri)
         lang_uri = URIRef(f"http://id.loc.gov/vocabulary/iso639-1/{code}")
         std_b = BNode()
-        self.g.add((URIRef(dataset_uri), DCT.conformsTo, std_b))
+
+        self.g.add((dataset_node, DCT.conformsTo, std_b))
         self.g.add((std_b, RDF.type, DCT.Standard))
-        self.g.add((lang_uri, RDF.type, DCT.LinguisticSystem))
-        self.g.add((dataset_ref, DCT.language, lang_uri))
-        # self.g.add((raw_lang, RDF.value, Literal('en', datatype=DCT.RFC4646)))
         self.g.add((std_b, DCT.identifier,
                     URIRef('https://docs.nmrxiv.org/submission-guides/data-model/spectra.html')))
 
-        # finally add the dumped triples
+        self.g.add((lang_uri, RDF.type, DCT.LinguisticSystem))
+        self.g.add((dataset_node, DCT.language, lang_uri))
+
+        # --- publisher ---
+        org = dataset_dict.get("organization") or {}
+        org_id = org.get("id")
+        org_name = org.get("title") or org.get("display_name") or org.get("name")
+        org_homepage = org.get("url")
+
+        if org_id:
+            site_url = toolkit.config.get("ckan.site_url")
+            org_uri = URIRef(f"{site_url}/organization/{org_id}")
+
+            self.g.add((dataset_node, DCT.publisher, org_uri))
+            self.g.add((org_uri, RDF.type, FOAF.Organization))
+            if org_name:
+                self.g.add((org_uri, FOAF.name, Literal(org_name)))
+            if org_homepage:
+                self.g.add((org_uri, FOAF.homepage, URIRef(org_homepage)))
+
+        # --- add graph ---
         for triple in nfdi_graph:
             self.g.add(triple)
 
