@@ -1,16 +1,15 @@
-from dcat_4c_ap import (Agent,
-                        AnalysisDataset, 
-                        AnalysisSourceData,
-                        DataAnalysis,
+import requests
+from dcat_ap_plus.datamodel.dcat_ap_plus import (Agent,
+                        Dataset,
                         DataGeneratingActivity,
                         DefinedTerm,
                         Document,
                         EvaluatedEntity,
                         Entity,
-                        LinguisticSystem, 
-                        Standard, 
+                        Standard,
                         QualitativeAttribute,
                         QuantitativeAttribute)
+
 from linkml_runtime.dumpers import RDFLibDumper
 from linkml_runtime.utils.schemaview import SchemaView
 import yaml
@@ -37,7 +36,7 @@ example_dataset = {
     'maintainer': '',
     'maintainer_email': None,
     'measurement_technique': 'heteronuclear single quantum coherence',
-    'measurement_technique_iri': 'CHMO:0000604',
+    'measurement_technique_iri': None,
     'metadata_created': '2025-02-03T14:35:36.229612',
     'metadata_modified': '2025-03-07T09:58:42.738120',
     'mol_formula': '',
@@ -145,7 +144,7 @@ example_dataset = {
          'variableMeasured_tsurl': '',
          'variableMeasured_value': '128'},
         {'variableMeasured_name': 'nuclear magnetic resonance pulse sequence',
-         'variableMeasured_propertyID': 'CHMO:0001841',
+         'variableMeasured_propertyID': 'http://purl.obolibrary.org/obo/CHMO_0001841',
          'variableMeasured_tsurl': 'http://purl.obolibrary.org/obo/CHMO_0001841',
          'variableMeasured_value': 'hsqcetgpsi2'},
         {'variableMeasured_name': 'Spectral Width',
@@ -154,6 +153,11 @@ example_dataset = {
          'variableMeasured_value': '[20.0302619019729, 220]'}
     ]
 }
+
+def _fetch_schema_yaml(iri: str) -> str:
+    response = requests.get(iri, headers={"Accept": "application/yaml"}, allow_redirects=True)
+    response.raise_for_status()
+    return response.text
 
 # TODO: Think about which namespaces shouldbe passed to the RDFLibDumper as prefix_map for those prefixes that are
 #  not already part of the DCAT-AP schema YAMLs. Should probably just be a Python dict maintained in this profile.
@@ -173,36 +177,44 @@ def graph_from_dataset(dataset_dict):
     # TODO: Do we need different instantiation steps/conditions based on where the metadata comes from?
     sample = EvaluatedEntity(
         id=f"{dataset_id}#sample",
+        # all samples are chemical substances in our context -> we hard code the type in the DCAT-AP+ profile like this
+        rdf_type=DefinedTerm(id='http://purl.obolibrary.org/obo/CHEBI_59999', title='chemical substance'),
+        # default title for now, until we can harvest sample names from the repos, e.g. "CRS-56724"
+        title='evaluated sample',
         has_part=[
             Entity(
-                id=f"{dataset_id}#compound",
+                # we will check PubChem, if the compound is indexed there using the InChiKey or SMILES and then use the
+                # PubChem CID (compound ID) as ID here. If the compound cannot be found in PubChem we fall back to the
+                # following default ID build from the default sample_id as below.
+                id=f"{dataset_id}#sample_compound",
                 has_qualitative_attribute=[
                     QualitativeAttribute(
                         rdf_type=DefinedTerm(
-                            id='CHEMINF:000059',
+                            id='http://semanticscience.org/resource/CHEMINF_000059',
                             title='InChiKey'),
                         title='assigned InChiKey',
                         value=dataset_dict.get('inchi_key')),
                     QualitativeAttribute(
                         rdf_type=DefinedTerm(
-                            id='CHEMINF:000113',
+                            id='http://semanticscience.org/resource/CHEMINF_000113',
                             title='InChi'),
                         title='assigned InChi',
                         value=dataset_dict.get('inchi')),
                     QualitativeAttribute(
                         rdf_type=DefinedTerm(
-                            id='CHEMINF:000018',
+                            id='http://semanticscience.org/resource/CHEMINF_000018',
                             title='SMILES'),
                         title='assigned SMILES',
                         value=dataset_dict.get('smiles')),
-                ]
+                ],
+                rdf_type=DefinedTerm(id='http://purl.obolibrary.org/obo/CHEBI_23367', title='molecular entity')
             )]
     )
     # add molecular_formular to the evaluated compound if it is present
     if dataset_dict.get('mol_formula'):
         sample.has_qualitative_attribute.append(QualitativeAttribute(
             rdf_type=DefinedTerm(
-                id='CHEMINF:000037',
+                id='http://semanticscience.org/resource/CHEMINF_000037',
                 title='IUPAC chemical formula'),
             title='assigned IUPAC chemical formula',
             value=dataset_dict.get('mol_formula')))
@@ -210,7 +222,7 @@ def graph_from_dataset(dataset_dict):
     if dataset_dict.get('exactmass'):
         sample.has_quantitative_attribute.append(QuantitativeAttribute(
             rdf_type=DefinedTerm(
-                id='CHEMINF:000217',
+                id='http://semanticscience.org/resource/CHEMINF_000217',
                 title='exact mass descriptor'),
             has_quantity_type='http://qudt.org/vocab/quantitykind/MolarMass',
             unit='https://qudt.org/vocab/unit/GM-PER-MOL',
@@ -220,21 +232,30 @@ def graph_from_dataset(dataset_dict):
     if dataset_dict.get('iupacName'):
         sample.has_qualitative_attribute.append(QualitativeAttribute(
             rdf_type=DefinedTerm(
-                id='CHEMINF:000107',
+                id='http://semanticscience.org/resource/CHEMINF_000107',
                 title='IUPAC name'),
             title='assigned IUPAC name',
             value=dataset_dict.get('iupacName')))
 
     # Instantiate the measurement process/activity
-    # --- measurement (Activity) ---
+    # --- data_generating_activity (Activity) ---
     if dataset_dict.get('measurement_technique_iri'):
-        measurement = DataGeneratingActivity(
-            id=f"{dataset_id}#measurement",  # required
+        data_generating_activity = DataGeneratingActivity(
+            id=f"{dataset_id}#data_generating_activity",  # required
             rdf_type=DefinedTerm(
                 id=dataset_dict['measurement_technique_iri'],
                 title=dataset_dict.get('measurement_technique')
             ),
-            evaluated_entity=[sample]
+            evaluated_entity=[sample.id]
+        )
+    else:
+        data_generating_activity = DataGeneratingActivity(
+            id=f"{dataset_id}#data_generating_activity",  # required
+            rdf_type=DefinedTerm(
+                id='http://purl.obolibrary.org/obo/OBI_0000070',
+                title='assay'
+            ),
+            evaluated_entity=[sample.id]
         )
 
 
@@ -248,112 +269,31 @@ def graph_from_dataset(dataset_dict):
     #        evaluated_entity=[sample]
     #    )
 
-        # --- spectrum ---
-        spectrum_kwargs = dict(
-            id=f"{dataset_id}#spectrum",
-            rdf_type=DefinedTerm(id='CHMO:0000800', title='spectrum'),
-            title=''
-        )
-        if measurement is not None:
-            spectrum_kwargs['was_generated_by'] = measurement
-        spectrum = AnalysisSourceData(**spectrum_kwargs)
+    # --- dataset ---
+    dataset = Dataset(
+        id=dataset_uri,
+        title=dataset_dict.get('title'),
+        description=dataset_dict.get('notes') or 'No description',
+        was_generated_by=[data_generating_activity.id],
+        identifier=dataset_id,
+        is_about_entity=[sample.id]
+    )
 
-        # --- analysis ---
-        analysis = DataAnalysis(
-            id=f"{dataset_id}#analysis",  # required
-            rdf_type=DefinedTerm(
-                id='OBI:0200000',
-                title='data analysis'
-            ),
-            evaluated_entity=[spectrum]  # this slot exists on DataAnalysis in your model
-        )
+    schemaview = SchemaView(_fetch_schema_yaml("https://w3id.org/nfdi-de/dcat-ap-plus/"), merge_imports=True)
 
-        # --- dataset ---
-        dataset = AnalysisDataset(
-            id=dataset_uri,
-            title=dataset_dict.get('title'),
-            description=dataset_dict.get('notes') or 'No description',
-            was_generated_by=[analysis],
-            identifier=dataset_id,
-            is_about_entity=[sample],
-            conforms_to=Standard(
-                title='https://docs.nmrxiv.org/submission-guides/data-model/spectra.html'
-            ))
+    rdf_nfdi_dumper = RDFLibDumper()
 
-        # )
+    # Dump each LinkML object you want in the graph
+    nfdi_graph = rdf_nfdi_dumper.as_rdf_graph(dataset, schemaview=schemaview)
+    nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(sample, schemaview=schemaview)
+    if data_generating_activity is not None:
+        nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(data_generating_activity, schemaview=schemaview)
 
-        creators = []
-        try:
-            if dataset_dict.get('author'):
-                for creator in dataset_dict.get('author').replace('., ', '.|').split('|'):
-                    creators.append(Agent(name=creator))
-            else:
-                creators.append(Agent(name='NA'))
-            dataset.creator = creators
-        except Exception as e:
-            log.error(e)
+    # finally add the dumped triples
+    for triple in nfdi_graph:
+        nfdi_graph.add(triple)
 
-        # Add language attribute to the dataset
-        # TODO: Simplify, once normalization happens in the previous harvesting/parsing step
-        # ensure it's a list
-        if not getattr(dataset, 'language', None):
-            dataset.language = []
-
-        # raw_lang = dataset_dict.get('language')
-        raw_lang = (dataset_dict.get('language') or '').strip().lower()
-
-        if raw_lang in ('english', 'en', 'en-us', 'en-gb', 'eng'):
-            code = 'en'
-        elif raw_lang in ('deutsch', 'german', 'de'):
-            code = 'de'
-        elif raw_lang:
-            code = raw_lang  # assume it's already a code like 'fr', 'es', ...
-        else:
-            code = 'en'  # default
-
-        # else:
-        #     dataset.language.append(LinguisticSystem(language_tag='en'))
-
-        # Add landing_page attribute to the dataset
-        if dataset_dict.get('url'):
-            dataset.landing_page = Document(id=dataset_dict.get('url'))
-
-        # Add release_date attribute to the dataset
-        dataset.release_date = dataset_dict.get('metadata_created')
-
-        # Add modification_date attribute to the dataset
-        dataset.modification_date = dataset_dict.get('metadata_modified')
-
-        schemaview = SchemaView(schema="../schemas/dcat_4c_ap.yaml",
-                                merge_imports=True)
-        rdf_nfdi_dumper = RDFLibDumper()
-
-        # Dump each LinkML object you want in the graph
-        g = rdf_nfdi_dumper.as_rdf_graph(dataset, schemaview=schemaview)
-        #g += rdf_nfdi_dumper.as_rdf_graph(sample, schemaview=schemaview)
-        #g += rdf_nfdi_dumper.as_rdf_graph(analysis, schemaview=schemaview)
-       # g += rdf_nfdi_dumper.as_rdf_graph(spectrum, schemaview=schemaview)
-        #if measurement is not None:
-            #g += rdf_nfdi_dumper.as_rdf_graph(measurement, schemaview=schemaview)
-
-        # Now add the link between dataset and sample using rdflib (choose the predicate you want)
-        from rdflib import URIRef, BNode
-        #lang_uri = URIRef(f"http://id.loc.gov/vocabulary/iso639-1/{code}")
-        #std_b = BNode()
-       # g.add((URIRef(dataset_uri), DCT.conformsTo, std_b))
-       # g.add((std_b, RDF.type, DCT.Standard))
-       # g.add((lang_uri, RDF.type, DCT.LinguisticSystem))
-       # g.add((dataset_ref, DCT.language, lang_uri))
-        # self.g.add((raw_lang, RDF.value, Literal('en', datatype=DCT.RFC4646)))
-       # g.add((std_b, DCT.identifier,
-         #           URIRef('https://docs.nmrxiv.org/submission-guides/data-model/spectra.html')))
-
-        # finally add the dumped triples
-        g = RDFLibDumper().as_rdf_graph(dataset, schemaview=SchemaView("dcat_4c_ap.yaml", merge_imports=True))
-        #for triple in g:
-            #g.add(triple)
-
-    return print(g.serialize(format='ttl'))
+    return print(nfdi_graph.serialize(format='ttl'))
 
 def main():
     graph_from_dataset(example_dataset)
