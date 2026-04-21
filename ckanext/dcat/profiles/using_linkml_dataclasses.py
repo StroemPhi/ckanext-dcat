@@ -368,6 +368,7 @@ def graph_from_dataset(dataset_dict):
     rdf_dumper2 = RDFLibDumper()
     chem_dcat_ap_graph = rdf_dumper2.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap)
     chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap)
+    chem_dcat_ap_graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap)
     if measurement is not None:
         chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap)
     # finally add the dumped triples
