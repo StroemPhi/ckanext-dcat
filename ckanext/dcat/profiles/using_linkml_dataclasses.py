@@ -10,10 +10,17 @@ from dcat_ap_plus.datamodel.dcat_ap_plus import (Agent,
                         QualitativeAttribute,
                         QuantitativeAttribute)
 from chem_dcat_ap.datamodel.chem_dcat_ap import (SubstanceSample,
-SubstanceSampleCharacterizationDataset,
-SubstanceSampleCharacterization,
-InChi, InChIKey, IUPACName, SMILES, MolecularFormula, MolarMass, ChemicalEntity)
+                                                 SubstanceSampleCharacterizationDataset,
+                                                 SubstanceSampleCharacterization,
+                                                 InChi,
+                                                 InChIKey,
+                                                 IUPACName,
+                                                 SMILES,
+                                                 MolecularFormula,
+                                                 MolarMass,
+                                                 ChemicalEntity)
 from linkml_runtime.dumpers import RDFLibDumper
+from linkml_runtime.utils.metamodelcore import URIorCURIE, Identifier
 from linkml_runtime.utils.schemaview import SchemaView
 import yaml
 import pprint
@@ -162,25 +169,30 @@ def _fetch_schema_yaml(iri: str) -> str:
     response.raise_for_status()
     return response.text
 
-# TODO: Think about which namespaces shouldbe passed to the RDFLibDumper as prefix_map for those prefixes that are
+# TODO: Think about which namespaces should be passed to the RDFLibDumper as prefix_map for those prefixes that are
 #  not already part of the DCAT-AP schema YAMLs. Should probably just be a Python dict maintained in this profile.
 
 def graph_from_dataset(dataset_dict):
     # Get the ID of the dataset
+    # needed here in the beginning, to use as ID base/prefix for the IDs of the other nodes (sample, compound, etc.)
     if dataset_dict.get('doi'):
         dataset_uri = 'https://doi.org/' + dataset_dict.get('doi')
         # not a mandatory field, but makes sense to do this here as it's the same value as the node URI
-        dataset_id = 'https://doi.org/'+ dataset_dict.get('doi')
+        dataset_id = dataset_uri
     else:
         dataset_uri = dataset_dict.get('id').strip()
-        dataset_id = dataset_dict.get('id').strip()
+        dataset_id = dataset_uri
 
-    # Instantiate the evaluated compound in DCAT-AP+
+    ### Instantiation of the DCAT-AP+ / ChemDCAT-AP Python dataclasses
+    ### the order of instantiation matters if done like this and not in helper functions, as they reference each other
+
+    ## Instantiate the evaluated compound in DCAT-AP
+    # we will check PubChem, if the compound is indexed there using the InChiKey or SMILES and then use the
+    # PubChem CID (compound ID) as ID here. If the compound cannot be found in PubChem we fall back to the
+    # following default ID build from the default sample_id as below.
+    compound_id = f"{dataset_id}#sample_compound"
     compound = Entity(
-        # we will check PubChem, if the compound is indexed there using the InChiKey or SMILES and then use the
-        # PubChem CID (compound ID) as ID here. If the compound cannot be found in PubChem we fall back to the
-        # following default ID build from the default sample_id as below.
-        id=f"{dataset_id}#sample_compound",
+        id=compound_id,
         has_qualitative_attribute=[
             QualitativeAttribute(
                 rdf_type=DefinedTerm(
@@ -203,12 +215,10 @@ def graph_from_dataset(dataset_dict):
         ],
         rdf_type=DefinedTerm(id='http://purl.obolibrary.org/obo/CHEBI_23367', title='molecular entity')
     )
+
     # Instantiate the evaluated compound in ChemDCAT-AP
     compound_chem = ChemicalEntity(
-            # we will check PubChem, if the compound is indexed there using the InChiKey or SMILES and then use the
-            # PubChem CID (compound ID) as ID here. If the compound cannot be found in PubChem we fall back to the
-            # following default ID build from the default sample_id as below.
-            id=f"{dataset_id}#sample_compound",
+            id=compound_id,
             inchikey=InChIKey(title='assigned InChiKey',
                               value=dataset_dict.get('inchi_key')),
             inchi=InChi(title='assigned InChi',
@@ -261,8 +271,9 @@ def graph_from_dataset(dataset_dict):
     # Instantiate the evaluated sample in DCAT-AP+
     # TODO: We used a fake ID, as the real one is not within the example dataset, but might be in the source data.
     # TODO: Do we need different instantiation steps/conditions based on where the metadata comes from?
+    sample_id = f"{dataset_id}#sample"
     sample = EvaluatedEntity(
-        id=f"{dataset_id}#sample",
+        id=sample_id,
         # all samples are chemical substances in our context -> we hard code the type in the DCAT-AP+ profile like this
         rdf_type=DefinedTerm(id='http://purl.obolibrary.org/obo/CHEBI_59999', title='chemical substance'),
         # default title for now, until we can harvest sample names from the repos, e.g. "CRS-56724"
@@ -271,7 +282,10 @@ def graph_from_dataset(dataset_dict):
     )
     # Instantiate the evaluated compound in ChemDCAT-AP
     sample_chem = SubstanceSample(
-        id=f"{dataset_id}#sample",
+        id=sample_id,
+        # all samples are chemical substances in our context, SubstanceSample is already mapped to SIO:001378 (analyte)
+        # -> we hard code as an additional type assertion CHEBI's 'chemical substance' like this
+        rdf_type=DefinedTerm(id='http://purl.obolibrary.org/obo/CHEBI_59999', title='chemical substance'),
         # default title for now, until we can harvest sample names from the repos, e.g. "CRS-56724"
         title='evaluated sample',
         composed_of=[compound_chem.id]
@@ -279,18 +293,20 @@ def graph_from_dataset(dataset_dict):
 
     # Instantiate the measurement process/activity
     # --- measurement (Activity) ---
+    measurement_id = f"{dataset_id}#measurement"
     if dataset_dict.get('measurement_technique_iri'):
         # in DCAT - AP +
         measurement = DataGeneratingActivity(
-            id=f"{dataset_id}#measurement",  # required
+            id=measurement_id,  # required
             rdf_type=DefinedTerm(
                 id=dataset_dict['measurement_technique_iri'],
                 title=dataset_dict.get('measurement_technique')
             ),
             evaluated_entity=[sample.id]
         )
+        # in ChemDCAT-AP
         measurement_chem = SubstanceSampleCharacterization(
-            id=f"{dataset_id}#measurement",  # required
+            id=measurement_id,  # required
             rdf_type=DefinedTerm(
                 id=dataset_dict['measurement_technique_iri'],
                 title=dataset_dict.get('measurement_technique')
@@ -300,32 +316,22 @@ def graph_from_dataset(dataset_dict):
     else:
         # in DCAT-AP+
         measurement = DataGeneratingActivity(
-            id=f"{dataset_id}#measurement",  # required
+            id=measurement_id,  # required
             rdf_type=DefinedTerm(
                 id='http://purl.obolibrary.org/obo/OBI_0000070',
                 title='assay'
             ),
             evaluated_entity=[sample.id]
         )
+        # in ChemDCAT-AP
         measurement_chem = SubstanceSampleCharacterization(
-            id=f"{dataset_id}#measurement",  # required
+            id=measurement_id,  # required
             rdf_type=DefinedTerm(
                 id='http://purl.obolibrary.org/obo/OBI_0000070',
                 title='assay'
             ),
             evaluated_entity=[sample_chem.id]
         )
-
-
-    # TODO: add a condition to account for MassBank and other sources not providing this, where we could hardcode,
-    #  like in the below Massbank example.
-    # elif source == 'Massbank:
-    #    measurement = DataCreatingActivity(
-    #        rdf_type=DefinedTerm(
-    #            id='CHMO:0000470',
-    #            title='mass spectrometry,
-    #        evaluated_entity=[sample]
-    #    )
 
     # --- dataset ---
     dataset = Dataset(
@@ -356,35 +362,22 @@ def graph_from_dataset(dataset_dict):
     dcat_ap_plus_graph = rdf_dumper.as_rdf_graph(dataset, schemaview=sv_dcat_ap_plus)
     dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(sample, schemaview=sv_dcat_ap_plus)
     dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(compound, schemaview=sv_dcat_ap_plus)
-    if measurement is not None:
-        dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(measurement, schemaview=sv_dcat_ap_plus)
-    # finally add the dumped triples
-    for triple in dcat_ap_plus_graph:
-        dcat_ap_plus_graph.add(triple)
+    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(measurement, schemaview=sv_dcat_ap_plus)
 
-    #return print(dcat_ap_plus_graph.serialize(format='ttl'))
-
-    # Dump each LinkML object you want in the dcat_ap_plus_graph
+    # Dump each LinkML object you want in the chem_dcat_ap_graph
     rdf_dumper2 = RDFLibDumper()
     chem_dcat_ap_graph = rdf_dumper2.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap)
     chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap)
     chem_dcat_ap_graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap)
-    if measurement is not None:
-        chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap)
-    # finally add the dumped triples
-    for triple in chem_dcat_ap_graph:
-        chem_dcat_ap_graph.add(triple)
+    chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap)
 
-    return print(chem_dcat_ap_graph.serialize(format='ttl'))
+    return print(
+        f'# ChemDCAT-AP ttl:\n{chem_dcat_ap_graph.serialize(format='ttl')}---\n'
+        f'# DCAT-AP PLUS ttl:\n{dcat_ap_plus_graph.serialize(format='ttl')}'
+    )
 
 def main():
     graph_from_dataset(example_dataset)
-
-def check_yaml():
-    # Open the YAML file
-    with open('dcat_4c_ap.yaml', 'r') as file:
-        data = yaml.safe_load(file)
-        pprint.pp(data)
 
 if __name__ == '__main__':
     main()
