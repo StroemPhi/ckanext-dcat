@@ -23,4 +23,4 @@ from .euro_dcat_ap_2 import EuropeanDCATAP2Profile
 from .euro_dcat_ap_scheming import EuropeanDCATAPSchemingProfile
 from .schemaorg import SchemaOrgProfile
 from .dcat_ap_plus import DCATNFDi4ChemProfile
-# from .chem_dcat_ap import DC
+from .chem_dcat_ap import ChemDCATAPProfile

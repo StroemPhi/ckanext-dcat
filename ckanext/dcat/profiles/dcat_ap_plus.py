@@ -89,8 +89,10 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
             dataset_id = dataset_uri
 
         # --- sample ---
+        # --- sample ---
         sample = EvaluatedEntity(
-            id=dataset_id + '/sample',
+            id=dataset_id + '#sample',
+            title='evaluated sample',
             has_qualitative_attribute=[
                 QualitativeAttribute(
                     rdf_type=DefinedTerm(id='CHEMINF:000059', title='InChiKey'),
@@ -119,7 +121,7 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
         measurement = None
         if dataset_dict.get('measurement_technique_iri'):
             measurement = DataCreatingActivity(
-                id=f"{dataset_id}/measurement",
+                id=f"{dataset_id}#measurement",
                 rdf_type=DefinedTerm(
                     id=dataset_dict['measurement_technique_iri'],
                     title=dataset_dict.get('measurement_technique')
@@ -128,7 +130,7 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
 
         # --- spectrum ---
         spectrum_kwargs = dict(
-            id=f"{dataset_id}/spectrum",
+            id=f"{dataset_id}#spectrum",
             rdf_type=DefinedTerm(id='CHMO:0000800', title='spectrum')
         )
         if measurement is not None:
@@ -137,7 +139,7 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
 
         # --- analysis ---
         analysis = DataAnalysis(
-            id=f"{dataset_id}/analysis",
+            id=f"{dataset_id}#analysis",
             rdf_type=DefinedTerm(
                 id='http://purl.allotrope.org/ontologies/process#AFP_0003618',
                 title='peak identification'
@@ -206,6 +208,15 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
         from rdflib import URIRef, BNode, Literal
 
         dataset_node = URIRef(dataset_uri)
+
+        sample_uri = URIRef(f"{dataset_id}#sample")
+        sample_compound_uri = URIRef(f"{dataset_id}#sample_compound")
+
+        self.g.add((sample_uri, RDF.type, URIRef("http://purl.obolibrary.org/obo/CHEBI_59999")))
+        self.g.add((sample_uri, RDF.type, PROV.Entity))
+        self.g.add((sample_uri, DCT.hasPart, sample_compound_uri))
+        self.g.add((sample_uri, DCT.title, Literal("evaluated sample")))
+
         lang_uri = URIRef(f"http://id.loc.gov/vocabulary/iso639-1/{code}")
         std_b = BNode()
 

@@ -117,6 +117,7 @@ TIME = CurieNamespace('time', 'http://www.w3.org/2006/time#')
 VCARD = CurieNamespace('vcard', 'http://www.w3.org/2006/vcard/ns#')
 XSD = CurieNamespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 DEFAULT_ = DCAT_4C_AP
+CHEMDCATAP = CurieNamespace('chemdcatap', 'https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/')
 
 
 # Types
@@ -4972,3 +4973,273 @@ slots.MaterialEntity_has_part = Slot(uri=BFO['0000051'], name="MaterialEntity_ha
 
 slots.MaterialSample_derived_from = Slot(uri=PROV.wasDerivedFrom, name="MaterialSample_derived_from", curie=PROV.curie('wasDerivedFrom'),
                    model_uri=DCAT_4C_AP.MaterialSample_derived_from, domain=MaterialSample, range=Optional[Union[dict, Entity]])
+
+
+class SubstanceSampleCharacterizationDatasetId(DatasetId):
+    pass
+
+
+class SubstanceSampleCharacterizationId(DataGeneratingActivityId):
+    pass
+
+
+@dataclass(repr=False)
+class SubstanceSampleCharacterizationDataset(Dataset):
+    """
+    A Dataset about a SubstanceSample that was produced by a
+    SubstanceSampleCharacterization activity.
+    """
+    _inherited_slots: ClassVar[List[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = DCAT["Dataset"]
+    class_class_curie: ClassVar[str] = "dcat:Dataset"
+    class_name: ClassVar[str] = "SubstanceSampleCharacterizationDataset"
+    class_model_uri: ClassVar[URIRef] = DCAT_4C_AP.SubstanceSampleCharacterizationDataset
+
+    id: Union[str, SubstanceSampleCharacterizationDatasetId] = None
+    description: Union[str, List[str]] = None
+    title: Union[str, List[str]] = None
+    was_generated_by: Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleCharacterizationId],
+                Union[Dict[Any, Any], "SubstanceSampleCharacterization"]
+            ],
+            List[Union[Dict[Any, Any], "SubstanceSampleCharacterization"]]
+        ]
+    ] = empty_dict()
+    is_about_entity: Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleId],
+                Union[Dict[Any, Any], "SubstanceSample"]
+            ],
+            List[Union[Dict[Any, Any], "SubstanceSample"]]
+        ]
+    ] = empty_dict()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.id):
+            self.MissingRequiredField("id")
+        if not isinstance(self.id, SubstanceSampleCharacterizationDatasetId):
+            self.id = SubstanceSampleCharacterizationDatasetId(self.id)
+
+        self._normalize_inlined_as_list(
+            slot_name="was_generated_by",
+            slot_type=SubstanceSampleCharacterization,
+            key_name="id",
+            keyed=True
+        )
+
+        self._normalize_inlined_as_list(
+            slot_name="is_about_entity",
+            slot_type=SubstanceSample,
+            key_name="id",
+            keyed=True
+        )
+
+        super().__post_init__(**kwargs)
+
+
+@dataclass(repr=False)
+class SubstanceSampleCharacterization(DataGeneratingActivity):
+    """
+    A DataGeneratingActivity that produces data about a SubstanceSample.
+    """
+    _inherited_slots: ClassVar[List[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = PROV["Activity"]
+    class_class_curie: ClassVar[str] = "prov:Activity"
+    class_name: ClassVar[str] = "SubstanceSampleCharacterization"
+    class_model_uri: ClassVar[URIRef] = DCAT_4C_AP.SubstanceSampleCharacterization
+
+    id: Union[str, SubstanceSampleCharacterizationId] = None
+    evaluated_entity: Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleId],
+                Union[Dict[Any, Any], "SubstanceSample"]
+            ],
+            List[Union[Dict[Any, Any], "SubstanceSample"]]
+        ]
+    ] = empty_dict()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.id):
+            self.MissingRequiredField("id")
+        if not isinstance(self.id, SubstanceSampleCharacterizationId):
+            self.id = SubstanceSampleCharacterizationId(self.id)
+
+        self._normalize_inlined_as_list(
+            slot_name="evaluated_entity",
+            slot_type=SubstanceSample,
+            key_name="id",
+            keyed=True
+        )
+
+        super().__post_init__(**kwargs)
+
+
+slots.SubstanceSampleCharacterizationDataset_was_generated_by = Slot(
+    uri=PROV.wasGeneratedBy,
+    name="SubstanceSampleCharacterizationDataset_was_generated_by",
+    curie=PROV.curie('wasGeneratedBy'),
+    model_uri=DCAT_4C_AP.SubstanceSampleCharacterizationDataset_was_generated_by,
+    domain=SubstanceSampleCharacterizationDataset,
+    range=Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleCharacterizationId],
+                Union[Dict[Any, Any], SubstanceSampleCharacterization]
+            ],
+            List[Union[Dict[Any, Any], SubstanceSampleCharacterization]]
+        ]
+    ]
+)
+
+slots.SubstanceSampleCharacterizationDataset_is_about_entity = Slot(
+    uri=DCTERMS.subject,
+    name="SubstanceSampleCharacterizationDataset_is_about_entity",
+    curie=DCTERMS.curie('subject'),
+    model_uri=DCAT_4C_AP.SubstanceSampleCharacterizationDataset_is_about_entity,
+    domain=SubstanceSampleCharacterizationDataset,
+    range=Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleId],
+                Union[Dict[Any, Any], SubstanceSample]
+            ],
+            List[Union[Dict[Any, Any], SubstanceSample]]
+        ]
+    ]
+)
+
+slots.SubstanceSampleCharacterization_evaluated_entity = Slot(
+    uri=PROV.used,
+    name="SubstanceSampleCharacterization_evaluated_entity",
+    curie=PROV.curie('used'),
+    model_uri=DCAT_4C_AP.SubstanceSampleCharacterization_evaluated_entity,
+    domain=SubstanceSampleCharacterization,
+    range=Optional[
+        Union[
+            Dict[
+                Union[str, SubstanceSampleId],
+                Union[Dict[Any, Any], SubstanceSample]
+            ],
+            List[Union[Dict[Any, Any], SubstanceSample]]
+        ]
+    ]
+)
+
+
+@dataclass(repr=False)
+class ChemicalEntity(Entity):
+    """
+    Any constitutionally or isotopically distinct atom, molecule, ion, ion pair, radical, radical ion, complex,
+    conformer etc., identifiable as a separately distinguishable entity.
+    """
+    _inherited_slots: ClassVar[List[str]] = []
+
+    class_class_uri: ClassVar[URIRef] = CHEBI["23367"]
+    class_class_curie: ClassVar[str] = "CHEBI:23367"
+    class_name: ClassVar[str] = "ChemicalEntity"
+    class_model_uri: ClassVar[URIRef] = CHEMDCATAP.ChemicalEntity
+
+    id: Union[str, ChemicalEntityId] = None
+
+    inchi: Optional[
+        Union[
+            Union[Dict[str, Any], "InChi"],
+            List[Union[Dict[str, Any], "InChi"]]
+        ]
+    ] = empty_list()
+
+    inchikey: Optional[
+        Union[
+            Union[Dict[str, Any], "InChIKey"],
+            List[Union[Dict[str, Any], "InChIKey"]]
+        ]
+    ] = empty_list()
+
+    smiles: Optional[
+        Union[
+            Union[Dict[str, Any], "SMILES"],
+            List[Union[Dict[str, Any], "SMILES"]]
+        ]
+    ] = empty_list()
+
+    molecular_formula: Optional[
+        Union[
+            Union[Dict[str, Any], "MolecularFormula"],
+            List[Union[Dict[str, Any], "MolecularFormula"]]
+        ]
+    ] = empty_list()
+
+    iupac_name: Optional[
+        Union[
+            Union[Dict[str, Any], "IUPACName"],
+            List[Union[Dict[str, Any], "IUPACName"]]
+        ]
+    ] = empty_list()
+
+    has_molar_mass: Optional[
+        Union[
+            Union[Dict[str, Any], "MolarMass"],
+            List[Union[Dict[str, Any], "MolarMass"]]
+        ]
+    ] = empty_list()
+
+    has_part: Optional[
+        Union[
+            Dict[
+                Union[str, ChemicalEntityId],
+                Union[Dict[str, Any], "ChemicalEntity"]
+            ],
+            List[Union[Dict[str, Any], "ChemicalEntity"]]
+        ]
+    ] = empty_dict()
+
+    def __post_init__(self, *_: str, **kwargs: Any):
+        if self._is_empty(self.id):
+            self.MissingRequiredField("id")
+        if not isinstance(self.id, ChemicalEntityId):
+            self.id = ChemicalEntityId(self.id)
+
+        if not isinstance(self.inchi, list):
+            self.inchi = [self.inchi] if self.inchi is not None else []
+        self.inchi = [v if isinstance(v, InChi) else InChi(**as_dict(v)) for v in self.inchi]
+
+        if not isinstance(self.inchikey, list):
+            self.inchikey = [self.inchikey] if self.inchikey is not None else []
+        self.inchikey = [v if isinstance(v, InChIKey) else InChIKey(**as_dict(v)) for v in self.inchikey]
+
+        if not isinstance(self.smiles, list):
+            self.smiles = [self.smiles] if self.smiles is not None else []
+        self.smiles = [v if isinstance(v, SMILES) else SMILES(**as_dict(v)) for v in self.smiles]
+
+        if not isinstance(self.molecular_formula, list):
+            self.molecular_formula = [self.molecular_formula] if self.molecular_formula is not None else []
+        self.molecular_formula = [
+            v if isinstance(v, MolecularFormula) else MolecularFormula(**as_dict(v))
+            for v in self.molecular_formula
+        ]
+
+        if not isinstance(self.iupac_name, list):
+            self.iupac_name = [self.iupac_name] if self.iupac_name is not None else []
+        self.iupac_name = [v if isinstance(v, IUPACName) else IUPACName(**as_dict(v)) for v in self.iupac_name]
+
+        if not isinstance(self.has_molar_mass, list):
+            self.has_molar_mass = [self.has_molar_mass] if self.has_molar_mass is not None else []
+        self.has_molar_mass = [
+            v if isinstance(v, MolarMass) else MolarMass(**as_dict(v))
+            for v in self.has_molar_mass
+        ]
+
+        self._normalize_inlined_as_list(
+            slot_name="has_part",
+            slot_type=ChemicalEntity,
+            key_name="id",
+            keyed=True
+        )
+
+        super().__post_init__(**kwargs)

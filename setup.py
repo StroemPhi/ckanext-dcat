@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '1.7.1'
+version = '1.8.0'
 
 setup(
     name='ckanext-dcat',
@@ -47,6 +47,7 @@ setup(
     schemaorg=ckanext.dcat.profiles:SchemaOrgProfile
     dcat_ap_nfdi4c=ckanext.dcat.profiles:NFDI4CAPProfile
     dcat_ap_plus=ckanext.dcat.profiles:DCATNFDi4ChemProfile
+    chem_dcat_ap=ckanext.dcat.profiles:ChemDCATAPProfile
     
     [babel.extractors]
     ckan = ckan.lib.extract:extract_ckan
