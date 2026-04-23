@@ -180,8 +180,14 @@ def graph_from_dataset(dataset_dict):
         # not a mandatory field, but makes sense to do this here as it's the same value as the node URI
         dataset_id = dataset_uri
     else:
-        dataset_uri = dataset_dict.get('id').strip()
-        dataset_id = dataset_uri
+        # if no DOI use URL of dataset at source repo
+        if dataset_dict.get('url'):
+            dataset_uri = dataset_dict.get('url').strip()
+            dataset_id = dataset_uri
+        else:
+            # if no URL of source repo present fallback to using search service URL
+            dataset_uri = dataset_dict.get('id').strip()
+            dataset_id = dataset_uri
 
     ### Instantiation of the DCAT-AP+ / ChemDCAT-AP Python dataclasses
     ### the order of instantiation matters if done like this and not in helper functions, as they reference each other
