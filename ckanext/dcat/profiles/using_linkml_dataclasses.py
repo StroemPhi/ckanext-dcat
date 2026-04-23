@@ -32,7 +32,7 @@ example_dataset = {
     'author': 'Yanagisawa, K., Kaneko, K., Ikeda, H., Iwata, S., Muranaka, A., Koshino, H., Nagao, N., Watari, S., Nishimura, S., Shinzato, N., Onaka, H., Kakeya, H.',
     'author_email': None,
     'creator_user_id': '8a5c874c-b5ab-4df4-87d3-dfdc40fe20f6',
-    'doi': '10.57992/nmrxiv.p85.s729.d3596',
+    #'doi': '10.57992/nmrxiv.p85.s729.d3596',
     'exactmass': '',
     'id': 'nmrxiv-d3596',
     'inchi': 'InChI=1S/C21H23NO7/c1-9(2)3-4-14-16-10(5-11(29-14)7-15(24)25)6-12-17(21(16)28)19(26)13(8-23)18(22)20(12)27/h6,8-9,11,14,28H,3-5,7,22H2,1-2H3,(H,24,25)/t11-,14-/m0/s1',
@@ -164,13 +164,13 @@ example_dataset = {
     ]
 }
 
-def _fetch_schema_yaml(iri: str) -> str:
-    response = requests.get(iri, headers={"Accept": "application/yaml"}, allow_redirects=True)
+def _fetch_schema_yaml(purl: str) -> str:
+    '''
+    helper function to get the schema YAML files from their PURLs
+    '''
+    response = requests.get(purl, headers={"Accept": "application/yaml"}, allow_redirects=True)
     response.raise_for_status()
     return response.text
-
-# TODO: Think about which namespaces should be passed to the RDFLibDumper as prefix_map for those prefixes that are
-#  not already part of the DCAT-AP schema YAMLs. Should probably just be a Python dict maintained in this profile.
 
 def graph_from_dataset(dataset_dict):
     # Get the ID of the dataset
@@ -357,19 +357,24 @@ def graph_from_dataset(dataset_dict):
 
 
     rdf_dumper = RDFLibDumper()
-
+    # In this prefix map we define all prefixes used that need to be passed to the RDFLibDumper to dump the graph
+    prefix_map = {'@base': 'https://search.nfdi4chem.de/dataset/',
+                  'CHEMINF': 'http://semanticscience.org/resource/CHEMINF_',
+                  'CHMO':'http://purl.obolibrary.org/obo/CHMO_',
+                  'CHEBI': 'http://purl.obolibrary.org/obo/CHEBI_'
+                  }
     # Dump each LinkML object you want in the dcat_ap_plus_graph
-    dcat_ap_plus_graph = rdf_dumper.as_rdf_graph(dataset, schemaview=sv_dcat_ap_plus)
-    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(sample, schemaview=sv_dcat_ap_plus)
-    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(compound, schemaview=sv_dcat_ap_plus)
-    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(measurement, schemaview=sv_dcat_ap_plus)
+    dcat_ap_plus_graph = rdf_dumper.as_rdf_graph(dataset, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
+    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(sample, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
+    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(compound, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
+    dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(measurement, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
 
     # Dump each LinkML object you want in the chem_dcat_ap_graph
     rdf_dumper2 = RDFLibDumper()
-    chem_dcat_ap_graph = rdf_dumper2.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap)
-    chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap)
-    chem_dcat_ap_graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap)
-    chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap)
+    chem_dcat_ap_graph = rdf_dumper2.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
+    chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
+    chem_dcat_ap_graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
+    chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
 
     return print(
         f'# ChemDCAT-AP ttl:\n{chem_dcat_ap_graph.serialize(format='ttl')}---\n'
