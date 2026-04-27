@@ -141,7 +141,7 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
         _pubchem_cache[key] = None
         return None
 
-    def _fetch_schema_yaml(purl: str) -> str:
+    def _fetch_schema_yaml(self, purl: str) -> str:
         '''
         helper function to get the schema YAML files from their PURLs
         '''
@@ -289,7 +289,7 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
             creator=self._creator_agents(dataset_dict),
             language=language,
             publisher=publisher,
-            conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/'),
+            conforms_to=Standard(title='DCAT-AP PLUS', description='https://w3id.org/nfdi-de/dcat-ap-plus'),
             was_generated_by=[measurement.id],
             is_about_entity=[sample.id],
         )
