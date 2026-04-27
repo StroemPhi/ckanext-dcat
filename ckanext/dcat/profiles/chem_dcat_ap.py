@@ -4,19 +4,17 @@ from decimal import Decimal, DecimalException
 from rdflib import term, URIRef, BNode, Literal, Graph
 import ckantoolkit as toolkit
 from .dcat_4c_ap import (Agent,
-                        Dataset,
-                        DataGeneratingActivity,
-                        DefinedTerm,
-                        Document,
-                        EvaluatedEntity,
-                        Entity,
-                        Standard,
-                        QualitativeAttribute,
-                        QuantitativeAttribute)
-from .dcat_4c_ap import (SubstanceSample,
-SubstanceSampleCharacterizationDataset,
-SubstanceSampleCharacterization,
-InChi, InChIKey, IUPACName, SMILES, MolecularFormula, MolarMass, ChemicalEntity)
+                         LinguisticSystem,
+                         Concept,
+                         Standard,
+                         Document,
+                         DefinedTerm,
+                         SubstanceSample,
+                         SubstanceSampleCharacterizationDataset,
+                         SubstanceSampleCharacterization,
+                         InChi, InChIKey, IUPACName, SMILES, MolecularFormula, MolarMass,
+                         ChemicalEntity,
+                         Identifier)
 
 from .base import (
     RDF,
@@ -66,13 +64,13 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
 
 
     def _dataset_identity(self, dataset_dict):
+        # use the DOI as the IRI of a dataset
         if dataset_dict.get("doi"):
-            dataset_uri = "https://doi.org/" + dataset_dict.get("doi")
-            dataset_id = dataset_uri
+            dataset_id = "https://doi.org/" + dataset_dict.get("doi")
+        # if no DOI to the source repo exists, we use the Search Service ID + base prefix as IRI
         else:
-            dataset_uri = dataset_dict.get("id").strip()
-            dataset_id = dataset_uri
-        return dataset_uri, dataset_id
+            dataset_id = dataset_dict.get("id").strip()
+        return dataset_id
 
 
     def _normalize_language_code(self, raw_lang):
@@ -94,14 +92,15 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
                 for creator in dataset_dict.get("author").replace("., ", ".|").split("|"):
                     creator = creator.strip()
                     if creator:
-                        creators.append(Agent(name=creator))
+                        creators.append = Agent(name=creator,
+                                                type=Concept(preferred_label='person',
+                                                             description='A human being.'))
             else:
-                creators.append(Agent(name="NA"))
+                pass
         except Exception as e:
 
             log.error(e)
         return creators
-
 
 
     def _get_pubchem_cid(self,inchi_key=None, smiles=None):
@@ -131,18 +130,15 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
         _pubchem_cache[key] = None
         return None
 
-# TODO: Think about which namespaces shouldbe passed to the RDFLibDumper as prefix_map for those prefixes that are
-#  not already part of the DCAT-AP schema YAMLs. Should probably just be a Python dict maintained in this profile.
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
 
+        # Question from Philip to Bhavin: why do we need this here?
+        # So far we only use the prefix map passed to the RDFLibDumper
         for prefix, namespace in namespaces.items():
             self.g.bind(prefix, namespace)
 
-        CHEMDCATAP = Namespace("https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/")
-        self.g.bind("chemdcatap", CHEMDCATAP)
-
-        dataset_uri, dataset_id = self._dataset_identity(dataset_dict)
+        dataset_id = self._dataset_identity(dataset_dict)
 
         # -------------------------
         # Compound
@@ -225,24 +221,57 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
             evaluated_entity=[sample_chem.id]
         )
 
+
+        # -------------------------
+        # Language
+        # -------------------------
+        code = self._normalize_language_code(dataset_dict.get("language"))
+        lang_uri = f"http://id.loc.gov/vocabulary/iso639-1/{code}"
+        language = LinguisticSystem(title=code,
+                                    description=lang_uri)
+
+
+        # -------------------------
+        # Publisher
+        # -------------------------
+        org = dataset_dict.get("organization") or {}
+        org_name = org.get("title") or org.get("display_name") or org.get("name")
+        # org_id & org_homepage cannot yet be used with DCAT-AP+ / ChemDCAT-AP
+        # see also: https://github.com/nfdi-de/dcat-ap-plus/issues/84
+        org_id = org.get("id")
+        org_homepage = org.get("url")
+
+        publisher = Agent(name=org_name,
+                          type=Concept(preferred_label='Academia/Scientific organisation',
+                                       description='http://purl.org/adms/publishertype/Academia-ScientificOrganisation'))
+
+
         # -------------------------
         # Dataset
         # -------------------------
         dataset_chem = SubstanceSampleCharacterizationDataset(
-            id=dataset_uri,
+            id=dataset_id,
             title=dataset_dict.get("title"),
             description=dataset_dict.get("notes") or "No description",
-            was_generated_by=[measurement_chem.id],
             identifier=dataset_id,
-            is_about_entity=[sample_chem.id]
+            other_identifier=Identifier(notation=dataset_id),
+            release_date = dataset_dict.get('metadata_created').split('T')[0],
+            modification_date = dataset_dict.get('metadata_modified').split('T')[0],
+            landing_page = Document(id=dataset_dict.get('url')),
+            creator= self._creator_agents(),
+            language=language,
+            publisher = publisher,
+            conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/')
         )
+
+
 
         sv_chem_dcat_ap = SchemaView(
             "/usr/lib/ckan/default/src/ckanext-dcat/ckanext/dcat/schemas/chem_dcat_ap.yaml",
             merge_imports=True
         )
 
-        rdf_nfdi_dumper = RDFLibDumper()
+        rdf_dumper = RDFLibDumper()
 
         prefix_map = {'@base': 'https://search.nfdi4chem.de/dataset/',
                       'CHEMINF': 'http://semanticscience.org/resource/CHEMINF_',
@@ -251,70 +280,15 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
                       }
 
         try:
-            nfdi_graph = rdf_nfdi_dumper.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
-            nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
-            nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
-            nfdi_graph += rdf_nfdi_dumper.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
+            graph = rdf_dumper.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
+            graph += rdf_dumper.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
+            graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
+            graph += rdf_dumper.as_rdf_graph(measurement_chem, schemaview=sv_chem_dcat_ap, prefix_map = prefix_map)
         except Exception as e:
             log.warning("ChemDCAT-AP serialization skipped: %s", e)
             return None
 
-        for triple in nfdi_graph:
+        for triple in graph:
             self.g.add(triple)
 
-        # -------------------------
-        # Important explicit triples
-        # -------------------------
-        dataset_node = URIRef(dataset_uri)
-        sample_node = URIRef(f"{dataset_id}#sample")
-        compound_node = URIRef(f"{dataset_id}#sample_compound")
-        measurement_node = URIRef(f"{dataset_id}#measurement")
-
-        # explicit profile typing
-        self.g.add((dataset_node, RDF.type, CHEMDCATAP.SubstanceSampleCharacterizationDataset))
-
-        # explicit sample/compound relation in case dumper misses it
-        #self.g.add((sample_node, URIRef("http://purl.obolibrary.org/obo/BFO_0000051"), compound_node))
-
-        # keep DCAT relation
-        self.g.add((dataset_node, PROV.wasGeneratedBy, measurement_node))
-
-        # -------------------------
-        # Language
-        # -------------------------
-        code = self._normalize_language_code(dataset_dict.get("language"))
-        lang_uri = URIRef(f"http://id.loc.gov/vocabulary/iso639-1/{code}")
-        self.g.add((lang_uri, RDF.type, DCT.LinguisticSystem))
-        self.g.add((dataset_node, DCT.language, lang_uri))
-
-        # -------------------------
-        # Publisher
-        # -------------------------
-        org = dataset_dict.get("organization") or {}
-        org_id = org.get("id")
-        org_name = org.get("title") or org.get("display_name") or org.get("name")
-        org_homepage = org.get("url")
-
-        if org_id:
-            site_url = toolkit.config.get("ckan.site_url")
-            org_uri = URIRef(f"{site_url}/organization/{org_id}")
-
-            self.g.add((dataset_node, DCT.publisher, org_uri))
-            self.g.add((org_uri, RDF.type, FOAF.Organization))
-            if org_name:
-                self.g.add((org_uri, FOAF.name, Literal(org_name)))
-            if org_homepage:
-                self.g.add((org_uri, FOAF.homepage, URIRef(org_homepage)))
-
-        # -------------------------
-        # Standard
-        # -------------------------
-        std_b = BNode()
-        self.g.add((dataset_node, DCT.conformsTo, std_b))
-        self.g.add((std_b, RDF.type, DCT.Standard))
-        self.g.add((
-            std_b,
-            DCT.identifier,
-            URIRef("https://docs.nmrxiv.org/submission-guides/data-model/spectra.html"),
-        ))
 
