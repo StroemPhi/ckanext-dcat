@@ -1,14 +1,18 @@
 import requests
 from dcat_ap_plus.datamodel.dcat_ap_plus import (Agent,
-                        Dataset,
-                        DataGeneratingActivity,
-                        DefinedTerm,
-                        Document,
-                        EvaluatedEntity,
-                        Entity,
-                        Standard,
-                        QualitativeAttribute,
-                        QuantitativeAttribute)
+                                                 Dataset,
+                                                 DataGeneratingActivity,
+                                                 DefinedTerm,
+                                                 Document,
+                                                 EvaluatedEntity,
+                                                 Entity,
+                                                 Concept,
+                                                 Identifier,
+                                                 Standard,
+                                                 QualitativeAttribute,
+                                                 QuantitativeAttribute,
+                                                 LinguisticSystem
+                                                 )
 from chem_dcat_ap.datamodel.chem_dcat_ap import (SubstanceSample,
                                                  SubstanceSampleCharacterizationDataset,
                                                  SubstanceSampleCharacterization,
@@ -24,7 +28,7 @@ from linkml_runtime.utils.metamodelcore import URIorCURIE, Identifier
 from linkml_runtime.utils.schemaview import SchemaView
 import yaml
 import pprint
-from rdflib.namespace import Namespace, RDF, XSD, SKOS, RDFS
+from rdflib import Graph
 import logging
 log = logging.getLogger(__name__)
 
@@ -32,7 +36,7 @@ example_dataset = {
     'author': 'Yanagisawa, K., Kaneko, K., Ikeda, H., Iwata, S., Muranaka, A., Koshino, H., Nagao, N., Watari, S., Nishimura, S., Shinzato, N., Onaka, H., Kakeya, H.',
     'author_email': None,
     'creator_user_id': '8a5c874c-b5ab-4df4-87d3-dfdc40fe20f6',
-    #'doi': '10.57992/nmrxiv.p85.s729.d3596',
+    'doi': '10.57992/nmrxiv.p85.s729.d3596',
     'exactmass': '',
     'id': 'nmrxiv-d3596',
     'inchi': 'InChI=1S/C21H23NO7/c1-9(2)3-4-14-16-10(5-11(29-14)7-15(24)25)6-12-17(21(16)28)19(26)13(8-23)18(22)20(12)27/h6,8-9,11,14,28H,3-5,7,22H2,1-2H3,(H,24,25)/t11-,14-/m0/s1',
@@ -346,7 +350,10 @@ def graph_from_dataset(dataset_dict):
         description=dataset_dict.get('notes') or 'No description',
         was_generated_by=[measurement.id],
         identifier=dataset_id,
-        is_about_entity=[sample.id]
+        is_about_entity=[sample.id],
+        release_date=dataset_dict.get('metadata_created').split('T')[0],
+        modification_date=dataset_dict.get('metadata_modified').split('T')[0],
+        landing_page = Document(id=dataset_dict.get('url'))
     )
 
     dataset_chem = SubstanceSampleCharacterizationDataset(
@@ -355,14 +362,53 @@ def graph_from_dataset(dataset_dict):
         description=dataset_dict.get('notes') or 'No description',
         was_generated_by=[measurement_chem.id],
         identifier=dataset_id,
-        is_about_entity=[sample_chem.id]
+        is_about_entity=[sample_chem.id],
+        release_date = dataset_dict.get('metadata_created').split('T')[0],
+        modification_date = dataset_dict.get('metadata_modified').split('T')[0],
+        landing_page=Document(id=dataset_dict.get('url'))
     )
+    # --- creators ---
+    creators = []
+    try:
+        if dataset_dict.get('author'):
+            for creator in dataset_dict.get('author').replace('., ', '.|').split('|'):
+                creators.append(Agent(name=creator,
+                                      type=Concept(preferred_label='person',
+                                                   description='A human being.')))
+            dataset.creator = creators
+            dataset_chem.creator = creators
+        else:
+            pass
 
-    sv_dcat_ap_plus = SchemaView(_fetch_schema_yaml("https://w3id.org/nfdi-de/dcat-ap-plus/"), merge_imports=True)
-    sv_chem_dcat_ap = SchemaView("../schemas/chem_dcat_ap.yaml", merge_imports=True)
+    except Exception as e:
+        log.error(e)
+
+    # --- publisher ---
+    org = dataset_dict.get("organization") or {}
+    org_name = org.get("title") or org.get("display_name") or org.get("name")
+    # these details cannot be used currently with DCAT-AP+ / ChemDCAT-AP
+    # see also: https://github.com/nfdi-de/dcat-ap-plus/issues/84
+    org_id = org.get("id")
+    org_homepage = org.get("url")
+
+    dataset.publisher = Agent(name=org_name,
+                              type=Concept(preferred_label='Academia/Scientific organisation',
+                                           description='http://purl.org/adms/publishertype/Academia-ScientificOrganisation'))
 
 
-    rdf_dumper = RDFLibDumper()
+    # --- language normalization ---
+    raw_lang = (dataset_dict.get('language') or '').strip().lower()
+    if raw_lang in ('english', 'en', 'en-us', 'en-gb', 'eng'):
+        code = 'en'
+    elif raw_lang in ('deutsch', 'german', 'de'):
+        code = 'de'
+    elif raw_lang:
+        code = raw_lang
+    else:
+        code = 'en'
+    dataset.language = LinguisticSystem(title=code, description=f"http://id.loc.gov/vocabulary/iso639-1/{code}")
+
+
     # In this prefix map we define all prefixes used that need to be passed to the RDFLibDumper to dump the graph
     prefix_map = {'@base': 'https://search.nfdi4chem.de/dataset/',
                   'CHEMINF': 'http://semanticscience.org/resource/CHEMINF_',
@@ -370,6 +416,9 @@ def graph_from_dataset(dataset_dict):
                   'CHEBI': 'http://purl.obolibrary.org/obo/CHEBI_'
                   }
     # Dump each LinkML object you want in the dcat_ap_plus_graph
+    rdf_dumper = RDFLibDumper()
+    sv_dcat_ap_plus = SchemaView(_fetch_schema_yaml("https://w3id.org/nfdi-de/dcat-ap-plus/"), merge_imports=True)
+
     dcat_ap_plus_graph = rdf_dumper.as_rdf_graph(dataset, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
     dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(sample, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
     dcat_ap_plus_graph += rdf_dumper.as_rdf_graph(compound, schemaview=sv_dcat_ap_plus, prefix_map=prefix_map)
@@ -377,6 +426,8 @@ def graph_from_dataset(dataset_dict):
 
     # Dump each LinkML object you want in the chem_dcat_ap_graph
     rdf_dumper2 = RDFLibDumper()
+    sv_chem_dcat_ap = SchemaView("../schemas/chem_dcat_ap.yaml", merge_imports=True)
+
     chem_dcat_ap_graph = rdf_dumper2.as_rdf_graph(dataset_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
     chem_dcat_ap_graph += rdf_dumper2.as_rdf_graph(sample_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
     chem_dcat_ap_graph += rdf_dumper.as_rdf_graph(compound_chem, schemaview=sv_chem_dcat_ap, prefix_map=prefix_map)
