@@ -261,7 +261,9 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
             creator= self._creator_agents(dataset_dict),
             language=language,
             publisher = publisher,
-            conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/')
+            conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/'),
+            was_generated_by=[measurement_chem.id],
+            is_about_entity=[sample_chem.id],
         )
 
 
