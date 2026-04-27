@@ -258,7 +258,7 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
             release_date = dataset_dict.get('metadata_created').split('T')[0],
             modification_date = dataset_dict.get('metadata_modified').split('T')[0],
             landing_page = Document(id=dataset_dict.get('url')),
-            creator= self._creator_agents(),
+            creator= self._creator_agents(dataset_dict),
             language=language,
             publisher = publisher,
             conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/')
