@@ -293,7 +293,8 @@ class DCATNFDi4ChemProfile(EuropeanDCATAPProfile):
             was_generated_by=[measurement.id],
             is_about_entity=[sample.id],
         )
-        sv_dcat_ap_plus = SchemaView(_fetch_schema_yaml("https://w3id.org/nfdi-de/dcat-ap-plus/"), merge_imports=True)
+        sv_dcat_ap_plus = SchemaView(self._fetch_schema_yaml("https://w3id.org/nfdi-de/dcat-ap-plus/"),
+                                     merge_imports=True)
 
         rdf_dumper = RDFLibDumper()
 
