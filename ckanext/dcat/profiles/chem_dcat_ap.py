@@ -5,6 +5,7 @@ from rdflib import term, URIRef, BNode, Literal, Graph
 import ckantoolkit as toolkit
 from .dcat_4c_ap import (Agent,
                          LinguisticSystem,
+                         LegalResource,
                          Concept,
                          Standard,
                          Document,
@@ -92,9 +93,9 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
                 for creator in dataset_dict.get("author").replace("., ", ".|").split("|"):
                     creator = creator.strip()
                     if creator:
-                        creators.append = Agent(name=creator,
+                        creators.append(Agent(name=creator,
                                                 type=Concept(preferred_label='person',
-                                                             description='A human being.'))
+                                                             description='A human being.')))
             else:
                 pass
         except Exception as e:
@@ -209,9 +210,12 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
         # -------------------------
         # Measurement
         # -------------------------
-        technique_iri = dataset_dict.get("measurement_technique_iri") or "http://purl.obolibrary.org/obo/OBI_0000070"
-        technique_label = dataset_dict.get("measurement_technique") or "assay"
-
+        if dataset_dict.get("measurement_technique_iri"):
+            technique_iri = dataset_dict.get("measurement_technique_iri")
+            technique_label = dataset_dict.get("measurement_technique")
+        else:
+            technique_iri = "http://purl.obolibrary.org/obo/OBI_0000070"
+            technique_label =  "assay"
         measurement_chem = SubstanceSampleCharacterization(
             id=f"{dataset_id}#measurement",
             rdf_type=DefinedTerm(
@@ -257,17 +261,35 @@ class ChemDCATAPProfile(EuropeanDCATAPProfile):
             other_identifier=Identifier(notation=dataset_id),
             release_date = dataset_dict.get('metadata_created').split('T')[0],
             modification_date = dataset_dict.get('metadata_modified').split('T')[0],
-            landing_page = Document(id=dataset_dict.get('url')),
             creator= self._creator_agents(dataset_dict),
-            language=language,
+            language=[language],
             publisher = publisher,
             conforms_to=Standard(title='ChemDCAT-AP', description='https://w3id.org/nfdi-de/dcat-ap-plus/chemistry/'),
             was_generated_by=[measurement_chem.id],
             is_about_entity=[sample_chem.id],
         )
 
+        # -------------------------
+        # Landing Page
+        # -------------------------
+        if dataset_dict.get('url'):
+            dataset_chem.landing_page = [Document(id=dataset_dict.get('url'))]
 
+        # -------------------------
+        # License
+        # -------------------------
+        if dataset_dict.get('license_title'):
+            title = dataset_dict.get('license_title')
+            license_url = f"{dataset_id}#license_notspecified"
+            if dataset_dict.get('license_id') != 'notspecified' and dataset_dict.get('license_url'):
+                license_url = dataset_dict.get('license_url')
+            dataset_chem.applicable_legislation = [LegalResource(id=license_url, title=title)]
+        else:
+            pass
 
+        # -------------------------
+        # Build Graph
+        # -------------------------
         sv_chem_dcat_ap = SchemaView(
             "/usr/lib/ckan/default/src/ckanext-dcat/ckanext/dcat/schemas/chem_dcat_ap.yaml",
             merge_imports=True
