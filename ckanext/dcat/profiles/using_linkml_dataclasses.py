@@ -3,7 +3,7 @@
 NFDI4Chem to DCAT-AP+ / ChemDCAT-AP RDF Converter
 
 This script processes chemical dataset metadata from the NFDI4Chem Search Service API
-(or a local file) and converts it into RDF graphs compliant with the DCAT-AP+ and/or
+and converts it into RDF graphs compliant with the DCAT-AP+ and/or
 ChemDCAT-AP schemas using LinkML.
 
 Features:
@@ -33,7 +33,6 @@ Dependencies:
     - dcat-ap-plus (custom package)
     - chem-dcat-ap (custom package)
 
-Author: Infomaniak AI Assistant (Refactored for PEP 8 compliance)
 Date: 2026
 """
 
