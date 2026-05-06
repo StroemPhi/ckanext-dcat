@@ -1,0 +1,23 @@
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_radar.json .\input\radar_missing.txt _dcat-ap-plus.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\radar_dcat_ap_plus_KG
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_chemotion.json .\input\chemotion_missing.json _dcat-ap-plus.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\chemotion_dcat_ap_plus_KG 
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\\collection_nmrxiv_normalized.json .\input\nmrxiv_missing.json _dcat-ap-plus.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\nmrxiv_dcat_ap_plus_KG
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_darus.json .\input\darus_missing.json _dcat-ap-plus.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\darus_dcat_ap_plus_KG 
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_massbank.json .\input\massbank_missing.json _dcat-ap-plus.ttl  C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_dcat_ap_plus_KG_pt1 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_dcat_ap_plus_KG_pt2 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_dcat_ap_plus_KG_pt3 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_dcat_ap_plus_KG_pt4 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_dcat_ap_plus_KG_pt5 
+
+
+##################
+# CHEM-DCAT_AP
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_radar.json .\input\radar_missing.txt _chem-dcat-ap.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\radar_chem_dcat_ap_KG
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_chemotion.json .\input\chemotion_missing.json _chem-dcat-ap.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\chemotion_chem_dcat_ap_KG
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\\collection_nmrxiv_normalized.json .\input\nmrxiv_missing.json _chem-dcat-ap.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\nmrxiv_chem_dcat_ap_KG
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_darus.json .\input\darus_missing.json _chem-dcat-ap.ttl C:\Users\stroemertp\ChemKG\dcat_ap_plus\darus_chem_dcat_ap_KG 
+
+uv run python .\my_scripts\check_missing_datasets.py .\input\collection_massbank.json .\input\massbank_missing.json _chem-dcat-ap.ttl  C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_chem_dcat_ap_KG_pt1 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_chem_dcat_ap_KG_pt2 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_chem_dcat_ap_KG_pt3 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_chem_dcat_ap_KG_pt4 C:\Users\stroemertp\ChemKG\dcat_ap_plus\massbank_chem_dcat_ap_KG_pt5 
