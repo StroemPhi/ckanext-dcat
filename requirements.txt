@@ -1,3 +1,4 @@
+dcat-ap-plus
 rdflib>=6.1.1,<7.1.0
 geomet>=0.2.0
 ckantoolkit>=0.0.7
