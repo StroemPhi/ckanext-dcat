@@ -30,12 +30,12 @@ from .base import (RDF,
 from linkml_runtime.dumpers import RDFLibDumper
 
 # Import base class - the DCAT profile we are inheriting from
-from .dcat_ap_plus import Helpers
+from .dcat_ap_plus import DCATNFDi4ChemProfile
 from .euro_dcat_ap import EuropeanDCATAPProfile
 
 # Import ChemDCAT-AP specific dataclasses (Local copy for Python 3.7 compatibility)
 # NOTE: In the future, replace this with: from chem_dcat_ap.datamodel.chem_dcat_ap import ...
-from .dcat_4c_ap import (
+from ckanext.dcat.profiles.dcat_4c_ap import (
     SubstanceSample,
     SubstanceSampleCharacterizationDataset,
     SubstanceSampleCharacterization,
@@ -45,8 +45,12 @@ from .dcat_4c_ap import (
 
 log = logging.getLogger(__name__)
 
+# Module-level cache for SchemaView instances
+# Key: schema_name, Value: SchemaView object
+_SCHEMA_VIEW_CACHE = {}
 
-class ChemDCATAPProfile(Helpers, EuropeanDCATAPProfile):
+
+class ChemDCATAPProfile(DCATNFDi4ChemProfile):
     """
     ChemDCAT-AP Profile.
     Inherits all data extraction and helper logic from DCATNFDi4ChemProfile.
@@ -157,7 +161,7 @@ class ChemDCATAPProfile(Helpers, EuropeanDCATAPProfile):
         tech_iri, tech_label = self._get_measurement_technique(dataset_dict)
         measurement_chem = SubstanceSampleCharacterization(
             id=meas_id,
-            description="The kind of activity/process used to generate the dataset",
+            description="The activity/process used to generate the dataset",
             rdf_type=DefinedTerm(id=tech_iri, title=tech_label),
             evaluated_entity=[sample_chem.id]
         )

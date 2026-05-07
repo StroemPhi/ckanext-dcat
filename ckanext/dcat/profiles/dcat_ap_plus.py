@@ -9,8 +9,8 @@ import ckantoolkit as toolkit
 import logging
 
 # NOTE: We import dataclasses from 'dcat_4c_ap' (local copy) instead of the
-# official pip packages because the server runs Python 3.7, while the
-# official packages require Python >3.9. Once the server is upgraded,
+# official pip package because the server runs Python 3.7, while the
+# official package require Python >3.9. Once the server is upgraded,
 # revert to: from dcat_ap_plus.datamodel.dcat_ap_plus import ...
 from ckanext.dcat.profiles.dcat_4c_ap import (Agent,
                                               Concept,
@@ -437,6 +437,7 @@ class DCATNFDi4ChemProfile(Helpers, EuropeanDCATAPProfile):
         tech_iri, tech_label = self._get_measurement_technique(dataset_dict)
         measurement = DataGeneratingActivity(
             id=meas_id,
+            description="The activity/process used to generate the dataset",
             rdf_type=DefinedTerm(id=tech_iri, title=tech_label),
             evaluated_entity=[sample.id]
         )
