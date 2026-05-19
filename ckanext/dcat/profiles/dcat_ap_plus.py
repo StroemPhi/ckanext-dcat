@@ -9,8 +9,8 @@ import ckantoolkit as toolkit
 import logging
 
 # NOTE: We import dataclasses from 'dcat_4c_ap' (local copy) instead of the
-# official pip package because the server runs Python 3.7, while the
-# official package require Python >3.9. Once the server is upgraded,
+# official pip packages because the server runs Python 3.7, while the
+# official packages require Python >3.9. Once the server is upgraded,
 # revert to: from dcat_ap_plus.datamodel.dcat_ap_plus import ...
 from ckanext.dcat.profiles.dcat_4c_ap import (Agent,
                                               Concept,
@@ -107,14 +107,13 @@ class Helpers(object):
 
         # 3. Try Local File
         try:
-            with open(local_yaml_path, 'r') as f:
-                schema_content = f.read()
-                source = "local file"
-                log.info(f"Loaded schema '{schema_name}' from local: {local_yaml_path}")
-        except FileNotFoundError:
-            log.warning(f"Local schema not found: {local_yaml_path}. Trying remote...")
+            if os.path.exists(local_yaml_path):
+                sv = SchemaView(local_yaml_path, merge_imports=True)
+                _SCHEMA_VIEW_CACHE[schema_name] = sv
+                log.info(f"Schema '{schema_name}' loaded from local file and cached: {local_yaml_path}")
+                return sv
         except Exception as e:
-            log.error(f"Error reading local schema {local_yaml_path}: {e}")
+            log.error(f"Failed to parse local schema '{schema_name}' at {local_yaml_path}: {e}")
 
         # 4. Try Remote PURL
         if not schema_content:
@@ -399,9 +398,9 @@ class DCATNFDi4ChemProfile(Helpers, EuropeanDCATAPProfile):
             ))
         if dataset_dict.get("mol_formula"):
             compound.has_qualitative_attribute.append(QualitativeAttribute(
-                rdf_type=DefinedTerm(id='http://semanticscience.org/resource/CHEMINF_000037',
-                                     title='IUPAC chemical formula'),
-                title="assigned IUPAC chemical formula",
+                rdf_type=DefinedTerm(id='http://semanticscience.org/resource/CHEMINF_000042',
+                                     title='molecular formula'),
+                title="assigned molecular formula",
                 value=dataset_dict.get("mol_formula")
             ))
         if dataset_dict.get("iupacName"):
@@ -437,7 +436,6 @@ class DCATNFDi4ChemProfile(Helpers, EuropeanDCATAPProfile):
         tech_iri, tech_label = self._get_measurement_technique(dataset_dict)
         measurement = DataGeneratingActivity(
             id=meas_id,
-            description="The activity/process used to generate the dataset",
             rdf_type=DefinedTerm(id=tech_iri, title=tech_label),
             evaluated_entity=[sample.id]
         )
@@ -486,5 +484,4 @@ class DCATNFDi4ChemProfile(Helpers, EuropeanDCATAPProfile):
                 self.g.add(triple)
         except Exception as e:
             log.error(f"RDF Serialization failed: {e}")
-
 
